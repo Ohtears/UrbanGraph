@@ -9,7 +9,7 @@ import networkx as nx
 
 # Add project root to sys.path for module imports
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from Models.data_obj import Node, Edge
+from Models.data_obj import Node, Edge, ZONE_COLORS, COLORS
 
 class GraphApp(QWidget):
     def __init__(self):
@@ -38,8 +38,8 @@ class GraphApp(QWidget):
         self.graph_item = pg.GraphItem()
         self.view.addItem(self.graph_item)
 
-        self.nodes = []  # List[Node]
-        self.edges = []  # List[Edge]
+        self.nodes = []  
+        self.edges = []  
         self.pos = np.array([])
 
         layout = QVBoxLayout()
@@ -68,21 +68,32 @@ class GraphApp(QWidget):
         self.update_graph()
 
     def update_graph(self):
-        # Prepare adjacency as indices for pyqtgraph
         if self.edges:
             adj = np.array([[e.source.id, e.target.id] for e in self.edges])
         else:
             adj = None
+
         symbols = ['o'] * len(self.nodes)
         sizes = [10] * len(self.nodes)
+
+        # Use zone to set brush color
+        brushes = [ZONE_COLORS.get(node.zone, 'w') for node in self.nodes]  # fallback to white
+
         self.graph_item.setData(
-            pos=self.pos, adj=adj, size=sizes, symbol=symbols,
-            pxMode=True, pen=pg.mkPen('k'), brush='c'
+            pos=self.pos,
+            adj=adj,
+            size=sizes,
+            symbol=symbols,
+            pxMode=True,
+            pen=pg.mkPen('k'),
+            brush=brushes
         )
 
+
     def generate_map(self):
+
         total_nodes = 100
-        self.nodes = [Node(i, (0, 0)) for i in range(total_nodes)]  # positions will be updated
+        self.nodes = [Node(i, (0, 0),) for i in range(total_nodes)]  # positions will be updated
 
         tree_edges = self.generate_random_spanning_tree(total_nodes)
 
@@ -119,14 +130,46 @@ class GraphApp(QWidget):
         center = self.pos.mean(axis=0)
         self.pos -= center
 
-        # Update node positions
-        for i, node in enumerate(self.nodes):
-            node.pos = self.pos[i]
+        self.assign_zone()
 
-        # Create Edge objects
         self.edges = [Edge(self.nodes[a], self.nodes[b]) for (a, b) in all_edges]
 
         self.update_graph()
+
+        self.focus_on_zone(0)  # Focus on North
+
+    def assign_zone(self):
+        for i, node in enumerate(self.nodes):
+            node.pos = self.pos[i]
+
+        for i, node in enumerate(self.nodes):
+            node.pos = self.pos[i]
+            x, y = node.pos
+
+            if abs(y) > abs(x):  # prioritize N/S over E/W
+                if y >= 0:
+                    node.zone = 0  # North
+                else:
+                    node.zone = 1  # South
+            else:
+                if x >= 0:
+                    node.zone = 2  # East
+                else:
+                    node.zone = 3  # West
+
+
+    def focus_on_zone(self, zone_id):
+        zone_nodes = [n for n in self.nodes if n.zone == zone_id]
+        if not zone_nodes:
+            return
+        coords = np.array([n.pos for n in zone_nodes])
+        min_xy = coords.min(axis=0)
+        max_xy = coords.max(axis=0)
+        pad = 10
+        self.view.setRange(
+            xRange=(min_xy[0] - pad, max_xy[0] + pad),
+            yRange=(min_xy[1] - pad, max_xy[1] + pad)
+        )
 
 
     def generate_random_spanning_tree(self, n):
@@ -161,6 +204,8 @@ class GraphApp(QWidget):
         symbols = ['o'] * len(self.nodes)
         sizes = [10] * len(self.nodes)
 
+        brushes = [ZONE_COLORS.get(node.zone, 'w') for node in self.nodes] 
+
         if distances[closest_index] > 3:  # Ignore if too far from a node
             for edge in self.edges:
                 pens.append((0, 0, 0, 255))  #black
@@ -171,8 +216,9 @@ class GraphApp(QWidget):
                 symbol=symbols,
                 pxMode=True,
                 pen=np.array(pens),
-                brush='c'
+                brush=brushes
             )
+            self.assign_zone()
             return
 
         print(f"Clicked node: {closest_index}")
@@ -186,12 +232,18 @@ class GraphApp(QWidget):
         symbols = ['o'] * len(self.nodes)
         sizes = [10] * len(self.nodes)
 
+        brushes = [ZONE_COLORS.get(node.zone, 'w') for node in self.nodes]
+
         pens = []
         for edge in self.edges:
+            node_color = ZONE_COLORS.get(edge.source.zone, 'w')
+            edge_color = COLORS.get(node_color, (0, 0, 0, 255))
             if node_index == edge.source.id or node_index == edge.target.id:
-                pens.append((0, 255, 0, 255))  # green
+                pens.append(edge_color)
             else:
-                pens.append((0, 0, 0, 0))  #nothing
+                pens.append((0, 0, 0, 0))  # nothing
+
+        pens = np.array(pens, dtype=np.uint8)  # <-- convert to numpy array
 
         self.graph_item.setData(
             pos=self.pos,
@@ -199,14 +251,15 @@ class GraphApp(QWidget):
             size=sizes,
             symbol=symbols,
             pxMode=True,
-            pen=np.array(pens),
-            brush='c'
+            pen=pens,
+            brush=brushes
         )
         
-
-
+        
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     win = GraphApp()
+    win.show()
+    sys.exit(app.exec())
     win.show()
     sys.exit(app.exec())
