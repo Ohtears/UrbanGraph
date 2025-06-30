@@ -6,11 +6,17 @@ class Node:
         self.pos = np.array(pos)
         self.zone = zone
 
+    def __gt__(self, oprand) :
+        return  self.zone < oprand.zone
+
+    def __lt__(self, oprand) :
+        return  self.zone > oprand.zone
 class Edge:
-    def __init__(self, source, target, color=(0, 0, 0, 255)):
+    def __init__(self, source, target, weight, color=(0, 0, 0, 255)):
         self.source = source  # Node object
         self.target = target  # Node object
         self.color = color
+        self.weight = weight
 
 ZONE_COLORS = {
     0: 'c',  # cyan

@@ -10,6 +10,7 @@ import networkx as nx
 # Add project root to sys.path for module imports
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from Models.data_obj import Node, Edge, ZONE_COLORS, COLORS
+from Utils.MST import PrimMST
 
 class GraphApp(QWidget):
     def __init__(self):
@@ -54,6 +55,31 @@ class GraphApp(QWidget):
         layout.addWidget(self.generate_btn)
 
         self.setLayout(layout)
+
+    def PerformMst(self) :
+    # Create MST solver
+        mst_solver = PrimMST(self.nodes, self.edges)
+
+        # Compute Minimum Spanning Tree
+        mst_edges = mst_solver.compute_mst()
+
+        # Visualize the MST
+        mst_solver.visualize_mst(mst_edges)
+
+        # Get nodes in the MST
+        mst_nodes = mst_solver.get_mst_nodes(mst_edges)
+
+        # Print MST details
+        print("Minimum Spanning Tree:")
+        total_weight = mst_solver.get_mst_total_weight(mst_edges)
+
+        for edge in mst_edges:
+            print(f"Edge: {edge.source.id} - {edge.target.id}, Weight: {edge.weight}")
+
+        print(f"Total MST Weight: {total_weight}")
+
+        # Optional: Visualize or further process the MST
+        return mst_nodes, mst_edges
 
     def add_node(self):
         x, y = np.random.rand(2) * 10
@@ -135,9 +161,11 @@ class GraphApp(QWidget):
 
         self.edges = [Edge(self.nodes[a], self.nodes[b], np.random.randint(1, 20)) for (a, b) in all_edges]
 
+        self.PerformMst()
         self.update_graph()
 
         self.focus_on_zone(0)  # Focus on North
+
 
     def assign_zone(self):
         for i, node in enumerate(self.nodes):
