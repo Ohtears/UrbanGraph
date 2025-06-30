@@ -3,18 +3,19 @@ import heapq
 from Models.data_obj import Node, Edge, ZONE_COLORS, COLORS
 
 class PrimMST:
-    def __init__(self, nodes, edges):
+    def __init__(self):
         """
         Initialize Prim's MST with Node and Edge objects
 
         :param nodes: List of Node objects
         :param edges: List of Edge objects
         """
-        self.nodes = nodes
-        self.edges = edges
-        self.num_nodes = len(nodes)
 
-    def compute_mst(self):
+        self.mst_nodes = set()
+        self.mst_edges = []
+        self.num_nodes = 0
+
+    def compute_mst(self, nodes, edges):
         """
         Compute Minimum Spanning Tree using Prim's algorithm
 
@@ -22,11 +23,11 @@ class PrimMST:
         """
         # Create adjacency list representation
         graph = {}
-        for node in self.nodes:
+        for node in nodes:
             graph[node] = []
 
         # Populate graph with edges
-        for edge in self.edges:
+        for edge in edges:
             graph[edge.source].append((edge.target, edge.weight))
             graph[edge.target].append((edge.source, edge.weight))
 
@@ -40,7 +41,7 @@ class PrimMST:
         mst_edges = []
 
         # Start from the first node
-        start_node = self.nodes[0]
+        start_node = nodes[0]
         visited.add(start_node)
 
         # Add all edges from the start node to the heap
@@ -61,7 +62,7 @@ class PrimMST:
             # Create and add edge to MST
             # Use the original edge color or a default
             edge_color = None
-            for original_edge in self.edges:
+            for original_edge in edges:
                 if (original_edge.source == src and original_edge.target == dest) or \
                    (original_edge.source == dest and original_edge.target == src):
                     edge_color = original_edge.color
@@ -79,40 +80,34 @@ class PrimMST:
                 if next_neighbor not in visited:
                     heapq.heappush(min_heap, (next_weight, dest, next_neighbor))
 
-        return mst_edges
+        self.mst_edges = mst_edges
 
-    def get_mst_total_weight(self, mst_edges):
+    def get_mst_total_weight(self):
         """
         Calculate total weight of the Minimum Spanning Tree
 
         :param mst_edges: List of Edge objects in the MST
         :return: Total weight of the MST
         """
-        return sum(edge.weight for edge in mst_edges)
+        return sum(edge.weight for edge in self.mst_edges)
 
 
-    # Additional utility methods you might want to add to the PrimMST class
-    def visualize_mst(self, mst_edges, ax=None):
-        """
-        Visualize the Minimum Spanning Tree
+    def visualize_mst(self, nodes, ax=None):
 
-        :param mst_edges: List of Edge objects in the MST
-        :param ax: Matplotlib axis to plot on (optional)
-        """
         import matplotlib.pyplot as plt
 
         if ax is None:
             fig, ax = plt.subplots()
 
         # Plot nodes
-        for node in self.nodes:
+        for node in nodes:
             ax.scatter(node.pos[0], node.pos[1],
                     c=ZONE_COLORS.get(node.zone, 'r'),
                     s=100)
             ax.text(node.pos[0], node.pos[1], str(node.id))
 
         # Plot MST edges
-        for edge in mst_edges:
+        for edge in self.mst_edges:
             src_pos = edge.source.pos
             dest_pos = edge.target.pos
 
@@ -127,22 +122,17 @@ class PrimMST:
         ax.set_title("Minimum Spanning Tree")
         plt.show()
 
-    # Add this method to the PrimMST class
-    def get_mst_nodes(self, mst_edges):
-        """
-        Extract unique nodes from MST edges
+    def get_mst_nodes(self):
 
-        :param mst_edges: List of Edge objects in the MST
-        :return: Set of unique nodes in the MST
-        """
         mst_nodes = set()
-        for edge in mst_edges:
+        for edge in self.mst_edges:
             mst_nodes.add(edge.source)
             mst_nodes.add(edge.target)
+
+        self.mst_nodes = mst_nodes
         return mst_nodes
 
-    # Optional: Method to filter edges by zone
-    def filter_mst_by_zone(self, mst_edges, target_zone):
+    def filter_mst_by_zone(self, target_zone):
         """
         Filter MST edges by a specific zone
 
@@ -151,6 +141,11 @@ class PrimMST:
         :return: List of edges in the specified zone
         """
         return [
-            edge for edge in mst_edges
+            edge for edge in self.mst_edges
             if edge.source.zone == target_zone or edge.target.zone == target_zone
         ]
+
+    def add_node(self, node, edges) :
+        self.mst_nodes.add(node)
+        min_edge = min(edges)
+        self.mst_edges.append(min_edge)

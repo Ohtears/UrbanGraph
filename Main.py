@@ -6,6 +6,7 @@ from PyQt6.QtGui import QPixmap
 from PyQt6.QtWidgets import QGraphicsPixmapItem
 import pyqtgraph as pg
 import networkx as nx
+import random
 
 # Add project root to sys.path for module imports
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -43,6 +44,8 @@ class GraphApp(QWidget):
         self.edges = []
         self.pos = np.array([])
 
+        self.mst_solver = PrimMST()
+
         layout = QVBoxLayout()
         layout.addWidget(self.graph_widget)
 
@@ -56,43 +59,57 @@ class GraphApp(QWidget):
 
         self.setLayout(layout)
 
-    def PerformMst(self) :
-    # Create MST solver
-        mst_solver = PrimMST(self.nodes, self.edges)
-
-        # Compute Minimum Spanning Tree
-        mst_edges = mst_solver.compute_mst()
+    def MST_status(self) :
 
         # Visualize the MST
-        mst_solver.visualize_mst(mst_edges)
+        self.mst_solver.visualize_mst(self.nodes)
 
         # Get nodes in the MST
-        mst_nodes = mst_solver.get_mst_nodes(mst_edges)
+        mst_nodes = self.mst_solver.get_mst_nodes()
 
         # Print MST details
         print("Minimum Spanning Tree:")
-        total_weight = mst_solver.get_mst_total_weight(mst_edges)
+        total_weight = self.mst_solver.get_mst_total_weight()
 
-        for edge in mst_edges:
+        for edge in self.mst_solver.mst_edges:
             print(f"Edge: {edge.source.id} - {edge.target.id}, Weight: {edge.weight}")
 
         print(f"Total MST Weight: {total_weight}")
 
         # Optional: Visualize or further process the MST
-        return mst_nodes, mst_edges
+        self.mst_solver.mst_nodes, self.mst_solver.mst_edges = mst_nodes, self.mst_solver.mst_edges
+
+    def PerformMst(self) :
+    # Create MST solver
+        # Compute Minimum Spanning Tree
+        self.mst_solver.compute_mst(self.nodes, self.edges)
+        self.MST_status()
+
+
+    def AddNodeToMST(self, node, edges) :
+        self.mst_solver.add_node(node, edges)
+        self.MST_status()
 
     def add_node(self):
         x, y = np.random.rand(2) * 10
         new_pos = np.array([[x, y]])
         self.pos = np.vstack([self.pos, new_pos]) if self.pos.size else new_pos
         node_id = len(self.nodes)
-        new_node = Node(node_id, (x, y))
-        edge_weght = np.random.randint(1, 20)
+        new_node = Node(node_id, (x, y), np.random.randint(4))
+        # Add new edges
+        New_edges = []
+        edges_count = np.random.randint(1,5)
+        for _ in range(edges_count) :
+            edge_weght = np.random.randint(1, 20)
+            New_edges.append(Edge(random.choice(self.nodes), new_node, edge_weght))
+
+
+        self.edges.extend(New_edges)
         self.nodes.append(new_node)
-        if len(self.nodes) > 1:
-            prev_node = self.nodes[-2]
-            self.edges.append(Edge(prev_node, new_node, edge_weght))
         self.update_graph()
+
+        self.AddNodeToMST(new_node, New_edges)
+
 
     def update_graph(self):
         if self.edges:

@@ -18,6 +18,13 @@ class Edge:
         self.color = color
         self.weight = weight
 
+    def __gt__(self, oprand) :
+        return self.weight > oprand.weight
+    def __lt__(self, oprand) :
+        return self.weight < oprand.weight
+    def __eq__(self, oprand) :
+            return self.weight == oprand.weight
+
 ZONE_COLORS = {
     0: 'c',  # cyan
     1: 'm',  # magenta
