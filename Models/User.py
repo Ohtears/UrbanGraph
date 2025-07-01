@@ -12,7 +12,7 @@ class User :
         if isinstance(self.current_loc, Edge) :
             return f"User is in the path {self.current_loc}"
 
-    def travel(self, nodes, path, clock) :
+    def travel(self, nodes, path, clock, log) :
         i = 0
         j = 0
         while i < len(path) or j < len(nodes) :
@@ -26,9 +26,9 @@ class User :
                         self.current_loc.passengers.discard(self)
                     self.current_loc = nodes[j]
                     j += 1
-                print(self.getLoc())
-                print("Edges passengers count :")
-                for edge in path :
-                    print(len(edge.passengers), end=" ")
-                print()
+                print(self.getLoc()) if log else None
+                # print("Edges passengers count :")
+                # for edge in path :
+                #     print(len(edge.passengers), end=" ")
+                # print()
                 time.sleep(1)

@@ -1,5 +1,6 @@
 import sys
 import os
+from matplotlib.typing import HashableList
 import numpy as np
 from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout
 from PyQt6.QtGui import QPixmap
@@ -7,7 +8,8 @@ from PyQt6.QtWidgets import QGraphicsPixmapItem
 import pyqtgraph as pg
 import networkx as nx
 import random
-
+import threading
+import time
 # Add project root to sys.path for module imports
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from Models.data_obj import Node, Edge, Graph, ZONE_COLORS, COLORS
@@ -77,6 +79,12 @@ class GraphApp(QWidget):
 
         self.setLayout(layout)
 
+        self._random_traffic_thread = threading.Thread(
+            target=self._random_traffic_loop,
+            daemon=True
+        )
+        self._random_traffic_thread.start()
+
     def start_travel(self):
         self.travel_mode = True
         self.travel_path = []
@@ -92,33 +100,68 @@ class GraphApp(QWidget):
             print("Travel has been canseled !")
 
         elif len(self.travel_path) > 1 and len(self.travel_path) <= len(self.nodes) :
-
-            u = User(self.nodes[self.travel_path[0]])
-            astar = AStar(self.nodes, self.edges)
-            nodes, path = [], []
-
-            if len(self.travel_path) == 2 :
-                nodes, path = astar.a_star_search(self.nodes[self.travel_path[0]],self.nodes[self.travel_path[1]])
-
-            else :
-
-                tsp_solver = TSP(astar)
-
-                source_node = self.nodes[self.travel_path[0]]
-                print(source_node)
-                destination_nodes = [self.nodes[self.travel_path[i]] for i in range(1,len(self.travel_path))]
-                print(destination_nodes)
-                min_cost, best_order, nodes, path = tsp_solver.tsp(source_node, destination_nodes)
-
-                print(f"Minimum cost: {min_cost}")
-                print(f"Best order of destinations: {best_order}")
-                print(nodes)
-                print(path)
-
-            u.travel(nodes,path,self.clock)
+            dsts = [self.nodes[self.travel_path[i]] for i in range(1, len(self.travel_path))]
+            self.Handle_travel(self.nodes[self.travel_path[0]], dsts)
 
 
+    def Handle_travel(self, src, dsts, log=True) :
 
+        u = User(src)
+        astar = AStar(self.nodes, self.edges)
+        nodes, path = [], []
+
+        if len(self.travel_path) == 2 :
+            nodes, path = astar.a_star_search(src, dsts[0])
+
+        else :
+
+            tsp_solver = TSP(astar)
+
+            print(src)
+            print(dsts)
+
+            min_cost, best_order, nodes, path = tsp_solver.tsp(src, dsts)
+
+            print(f"Minimum cost: {min_cost}")
+            print(f"Best order of destinations: {best_order}")
+            print(nodes)
+            print(path)
+
+        u.travel(nodes,path,self.clock, log)
+
+    def _random_traffic_loop(self):
+        """
+        A background loop that periodically invokes RandomTrafic().
+        This runs in its own daemon thread so it won't block the GUI.
+        """
+        while True:
+            # You could also use self.clock.get_clock_value() to gate your calls
+            # or even read a user‐configurable interval.
+            try :
+                self.RandomTrafic()
+            except :
+                print("Error in thread")
+
+            time.sleep(1)
+
+
+    def RandomTrafic(self):
+
+        if not self.clock.get_clock_value():
+            return
+
+        prob = random.randint(1,11) / 10
+        print(prob)
+        if prob <= 0.3 and len(self.nodes) >= 2:
+            n = random.randint(2, len(self.nodes))
+            travel_nodes = random.sample(self.nodes, n)
+            print("Random Travel started:", [node.id for node in travel_nodes])
+
+            # origin is the first, the rest are destinations
+            src_node = travel_nodes[0]
+            dst_nodes = travel_nodes[1:]
+            # pass log=False so it won't spam your console inside Handle_travel
+            self.Handle_travel(src_node, dst_nodes, log=False)
 
     def MST_status(self) :
 

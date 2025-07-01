@@ -2,7 +2,7 @@ import threading
 import time
 
 class ClockGenerator:
-    def __init__(self, off_time = 5, on_time =0.00000000001):
+    def __init__(self, off_time = 5, on_time =1):
         self.running = False
         self.clock_value = 0
         self.off_time = off_time
