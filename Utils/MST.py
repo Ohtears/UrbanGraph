@@ -28,8 +28,8 @@ class PrimMST:
 
         # Populate graph with edges
         for edge in edges:
-            graph[edge.source].append((edge.target, edge.weight))
-            graph[edge.target].append((edge.source, edge.weight))
+            graph[edge.source].append((edge.target, edge.weight, edge.capacity))
+            graph[edge.target].append((edge.source, edge.weight, edge.capacity))
 
         # Track visited nodes
         visited = set()
@@ -45,12 +45,12 @@ class PrimMST:
         visited.add(start_node)
 
         # Add all edges from the start node to the heap
-        for neighbor, weight in graph[start_node]:
-            heapq.heappush(min_heap, (weight, start_node, neighbor))
+        for neighbor, weight, capacity in graph[start_node]:
+            heapq.heappush(min_heap, (weight, capacity, start_node, neighbor))
 
         # Continue until all nodes are visited
         while min_heap:
-            weight, src, dest = heapq.heappop(min_heap)
+            weight, capacity, src, dest = heapq.heappop(min_heap)
 
             # Skip if destination is already visited
             if dest in visited:
@@ -72,13 +72,13 @@ class PrimMST:
             if edge_color is None:
                 edge_color = (0, 0, 0, 255)  # Default black
 
-            mst_edge = Edge(src, dest, weight, color=edge_color)
+            mst_edge = Edge(src, dest, weight, capacity,color=edge_color)
             mst_edges.append(mst_edge)
 
             # Add new edges from the current node
-            for next_neighbor, next_weight in graph[dest]:
+            for next_neighbor, next_weight, next_capacity in graph[dest]:
                 if next_neighbor not in visited:
-                    heapq.heappush(min_heap, (next_weight, dest, next_neighbor))
+                    heapq.heappush(min_heap, (next_weight, next_capacity, dest, next_neighbor))
 
         self.mst_edges = mst_edges
 

@@ -6,12 +6,12 @@ from PyQt6.QtGui import QPixmap
 from PyQt6.QtWidgets import QGraphicsPixmapItem
 import pyqtgraph as pg
 import networkx as nx
-import random
 
 # Add project root to sys.path for module imports
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from Models.data_obj import Node, Edge, ZONE_COLORS, COLORS
+from Models.data_obj import Node, Edge, Graph, ZONE_COLORS, COLORS
 from Utils.MST import PrimMST
+from Utils.AStar import AStar
 
 class GraphApp(QWidget):
     def __init__(self):
@@ -25,6 +25,8 @@ class GraphApp(QWidget):
         self.view.setAspectLocked()
         self.view.setMouseMode(self.view.PanMode)
         self.view.scene().sigMouseClicked.connect(self.on_click)
+
+
 
         bg_item = QGraphicsPixmapItem(bg_pixmap)
         bg_item.setZValue(-10)
@@ -49,6 +51,18 @@ class GraphApp(QWidget):
         layout = QVBoxLayout()
         layout.addWidget(self.graph_widget)
 
+        self.travel_mode = False
+        self.travel_path = []
+
+        self.travel_btn = QPushButton("Travel")
+        self.travel_btn.clicked.connect(self.start_travel)
+        layout.addWidget(self.travel_btn)
+
+        self.done_btn = QPushButton("Done")
+        self.done_btn.clicked.connect(self.finish_travel)
+        self.done_btn.hide()
+        layout.addWidget(self.done_btn)
+
         self.add_node_btn = QPushButton("Add Node")
         self.add_node_btn.clicked.connect(self.add_node)
         layout.addWidget(self.add_node_btn)
@@ -58,6 +72,25 @@ class GraphApp(QWidget):
         layout.addWidget(self.generate_btn)
 
         self.setLayout(layout)
+
+    def start_travel(self):
+        self.travel_mode = True
+        self.travel_path = []
+        self.travel_btn.hide()
+        self.done_btn.show()
+        print("Travel mode activated. Click on nodes to record your path.")
+
+    def finish_travel(self):
+        self.travel_mode = False
+        self.done_btn.hide()
+        self.travel_btn.show()
+        print("Travel path completed:")
+        print(" -> ".join(str(node_id) for node_id in self.travel_path))
+        astar = AStar(self.nodes, self.edges)
+        print(self.nodes[self.travel_path[0]].id, self.nodes[self.travel_path[1]].id)
+        nodes, path = astar.a_star_search(self.nodes[self.travel_path[0]],self.nodes[self.travel_path[1]])
+        print(nodes)
+        print(path)
 
     def MST_status(self) :
 
@@ -101,7 +134,9 @@ class GraphApp(QWidget):
         edges_count = np.random.randint(1,5)
         for _ in range(edges_count) :
             edge_weght = np.random.randint(1, 20)
-            New_edges.append(Edge(random.choice(self.nodes), new_node, edge_weght))
+            edge_cap = np.random.randint(5, 30)
+
+            New_edges.append(Edge(random.choice(self.nodes), new_node, edge_weght, edge_cap))
 
 
         self.edges.extend(New_edges)
@@ -136,7 +171,7 @@ class GraphApp(QWidget):
 
     def generate_map(self):
 
-        total_nodes = 100
+        total_nodes = 20
         self.nodes = [Node(i, (0, 0),) for i in range(total_nodes)]  # positions will be updated
 
         tree_edges = self.generate_random_spanning_tree(total_nodes)
@@ -176,7 +211,7 @@ class GraphApp(QWidget):
 
         self.assign_zone()
 
-        self.edges = [Edge(self.nodes[a], self.nodes[b], np.random.randint(1, 20)) for (a, b) in all_edges]
+        self.edges = [Edge(self.nodes[a], self.nodes[b], np.random.randint(1, 20),np.random.randint(5, 30)) for (a, b) in all_edges]
 
         self.PerformMst()
         self.update_graph()
@@ -268,6 +303,9 @@ class GraphApp(QWidget):
             return
 
         print(f"Clicked node: {closest_index}")
+        if self.travel_mode:
+            if not self.travel_path or self.travel_path[-1] != closest_index:
+                self.travel_path.append(closest_index)
         self.highlight_edges(closest_index)
 
     def highlight_edges(self, node_index):
