@@ -6,17 +6,20 @@ from PyQt6.QtGui import QPixmap
 from PyQt6.QtWidgets import QGraphicsPixmapItem
 import pyqtgraph as pg
 import networkx as nx
+import random
 
 # Add project root to sys.path for module imports
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from Models.data_obj import Node, Edge, Graph, ZONE_COLORS, COLORS
+from Models.User import User
 from Utils.MST import PrimMST
 from Utils.AStar import AStar
+from Utils.Clock import ClockGenerator
 
 class GraphApp(QWidget):
-    def __init__(self):
+    def __init__(self, clock):
         super().__init__()
-
+        self.clock = clock
         bg_pixmap = QPixmap("BackgroundImg.png")
 
         self.setWindowTitle("City")
@@ -84,13 +87,26 @@ class GraphApp(QWidget):
         self.travel_mode = False
         self.done_btn.hide()
         self.travel_btn.show()
-        print("Travel path completed:")
-        print(" -> ".join(str(node_id) for node_id in self.travel_path))
-        astar = AStar(self.nodes, self.edges)
-        print(self.nodes[self.travel_path[0]].id, self.nodes[self.travel_path[1]].id)
-        nodes, path = astar.a_star_search(self.nodes[self.travel_path[0]],self.nodes[self.travel_path[1]])
-        print(nodes)
-        print(path)
+        if len(self.travel_path) == 0 :
+            print("Travel has been canseled !")
+
+        elif len(self.travel_path) > 1 and len(self.travel_path) <= len(self.nodes) :
+
+            u = User(self.nodes[self.travel_path[0]])
+            astar = AStar(self.nodes, self.edges)
+            nodes, path = [], []
+
+            if len(self.travel_path) == 2 :
+                nodes, path = astar.a_star_search(self.nodes[self.travel_path[0]],self.nodes[self.travel_path[1]])
+
+            else :
+                # TODO : phase 3 !
+                pass
+
+            u.travel(nodes,path,self.clock)
+
+
+
 
     def MST_status(self) :
 
@@ -342,7 +358,11 @@ class GraphApp(QWidget):
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    win = GraphApp()
+
+    clock = ClockGenerator()
+    clock.start()
+
+    win = GraphApp(clock)
     win.show()
     sys.exit(app.exec())
     win.show()

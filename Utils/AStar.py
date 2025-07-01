@@ -12,7 +12,7 @@ class AStar:
         return (0.7 * geometric_distance) + (0.3 * zone_distance * 10)
 
     def is_edge_blocked(self, edge):
-        return edge.passengers >= edge.capacity
+        return len(edge.passengers) >= edge.capacity
 
     def get_neighbor_edges(self, node):
         return self.graph.get_edges(node)

@@ -15,13 +15,14 @@ class Node:
         return str(self.id)
 
 class Edge:
-    def __init__(self, source, target, weight, capacity, color=(0, 0, 0, 255), passengers=0):
+    def __init__(self, source, target, weight, capacity, color=(0, 0, 0, 255), passengers=None):
         self.source = source  # Node object
         self.target = target  # Node object
         self.color = color
         self.weight = weight
         self.capacity = capacity
-        self.passengers = passengers
+        self.passengers = passengers if passengers is not None else set()
+
 
     def __gt__(self, oprand) :
         return self.weight > oprand.weight
@@ -35,7 +36,7 @@ class Edge:
 
     @property
     def SetTraficColor(self):
-        occupancy_ratio = self.passengers / self.capacity
+        occupancy_ratio = len(self.passengers) / self.capacity
 
         if occupancy_ratio < 0.3:
             self.color = (0, 200, 0, 255)  # Dark green
