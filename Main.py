@@ -83,6 +83,7 @@ class GraphApp(QWidget):
             target=self._random_traffic_loop,
             daemon=True
         )
+        # TODO : barname inja bakht mide !!!
         self._random_traffic_thread.start()
 
     def start_travel(self):
@@ -160,8 +161,14 @@ class GraphApp(QWidget):
             # origin is the first, the rest are destinations
             src_node = travel_nodes[0]
             dst_nodes = travel_nodes[1:]
-            # pass log=False so it won't spam your console inside Handle_travel
-            self.Handle_travel(src_node, dst_nodes, log=False)
+
+            t = threading.Thread(
+                target=self.Handle_travel,
+                args=(src_node, dst_nodes, False),
+                daemon=True
+            )
+            t.start()
+
 
     def MST_status(self) :
 
@@ -242,7 +249,7 @@ class GraphApp(QWidget):
 
     def generate_map(self):
 
-        total_nodes = 50
+        total_nodes = 20
         self.nodes = [Node(i, (0, 0),) for i in range(total_nodes)]  # positions will be updated
 
         tree_edges = self.generate_random_spanning_tree(total_nodes)
