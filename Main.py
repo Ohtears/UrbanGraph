@@ -8,7 +8,6 @@ import pyqtgraph as pg
 import networkx as nx
 import random
 
-# Add project root to sys.path for module imports
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from Models.data_obj import Node, Edge, Graph, ZONE_COLORS, COLORS
 from Models.User import User
@@ -29,8 +28,6 @@ class GraphApp(QWidget):
         self.view.setMouseMode(self.view.PanMode)
         self.view.scene().sigMouseClicked.connect(self.on_click)
 
-
-
         bg_item = QGraphicsPixmapItem(bg_pixmap)
         bg_item.setZValue(-10)
 
@@ -39,7 +36,6 @@ class GraphApp(QWidget):
         bg_item.setScale(0.2)
 
         bg_item.setPos(-bg_rect.width() / 2, -bg_rect.height() / 2)
-
 
         self.view.addItem(bg_item)
         self.graph_item = pg.GraphItem()
