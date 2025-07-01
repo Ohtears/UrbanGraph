@@ -34,6 +34,10 @@ class Edge:
     def __repr__(self):
         return f"{self.source.id} -> {self.target.id}"
 
+    def __hash__(self):
+        return int(f"{self.source.id}{self.target.id}")
+
+
     @property
     def SetTraficColor(self):
         occupancy_ratio = len(self.passengers) / self.capacity

@@ -1,3 +1,4 @@
+from this import s
 from Models.data_obj import Node, Edge
 import time
 class User :
@@ -29,4 +30,5 @@ class User :
                 print("Edges passengers count :")
                 for edge in path :
                     print(len(edge.passengers), end=" ")
-                print(time.time())
+                print()
+                time.sleep(1)

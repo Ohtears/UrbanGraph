@@ -15,6 +15,7 @@ from Models.User import User
 from Utils.MST import PrimMST
 from Utils.AStar import AStar
 from Utils.Clock import ClockGenerator
+from Utils.TSP import TSP
 
 class GraphApp(QWidget):
     def __init__(self, clock):
@@ -100,8 +101,19 @@ class GraphApp(QWidget):
                 nodes, path = astar.a_star_search(self.nodes[self.travel_path[0]],self.nodes[self.travel_path[1]])
 
             else :
-                # TODO : phase 3 !
-                pass
+
+                tsp_solver = TSP(astar)
+
+                source_node = self.nodes[self.travel_path[0]]
+                print(source_node)
+                destination_nodes = [self.nodes[self.travel_path[i]] for i in range(1,len(self.travel_path))]
+                print(destination_nodes)
+                min_cost, best_order, nodes, path = tsp_solver.tsp(source_node, destination_nodes)
+
+                print(f"Minimum cost: {min_cost}")
+                print(f"Best order of destinations: {best_order}")
+                print(nodes)
+                print(path)
 
             u.travel(nodes,path,self.clock)
 
@@ -187,7 +199,7 @@ class GraphApp(QWidget):
 
     def generate_map(self):
 
-        total_nodes = 20
+        total_nodes = 50
         self.nodes = [Node(i, (0, 0),) for i in range(total_nodes)]  # positions will be updated
 
         tree_edges = self.generate_random_spanning_tree(total_nodes)
