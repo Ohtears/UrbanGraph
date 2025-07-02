@@ -21,6 +21,8 @@ from Utils.MST import PrimMST
 from Utils.AStar import AStar
 from Utils.Clock import ClockGenerator
 from Utils.TSP import TSP
+from Utils.BFS import BFS
+
 
 import builtins
 
@@ -78,8 +80,8 @@ class GraphApp(QWidget):
         layout = QVBoxLayout()
         layout.addWidget(self.graph_widget)
 
-        self.saved_traffic_colors = {}  
-        self.flow_arrows = []  
+        self.saved_traffic_colors = {}
+        self.flow_arrows = []
         self.travel_mode = False
         self.travel_path = []
 
@@ -102,6 +104,14 @@ class GraphApp(QWidget):
         self.traffic_btn.clicked.connect(self.toggle_traffic)
         layout.addWidget(self.traffic_btn)
 
+        self.bfs_btn = QPushButton("BFS")
+        self.bfs_btn.clicked.connect(self.start_bfs)
+        layout.addWidget(self.bfs_btn)
+
+        self.bfs_done_btn = QPushButton("Show BFS")
+        self.bfs_done_btn.clicked.connect(self.finish_bfs)
+        self.bfs_done_btn.hide()
+        layout.addWidget(self.bfs_done_btn)
 
         self.add_node_btn = QPushButton("Add Node")
         self.add_node_btn.clicked.connect(self.add_node)
@@ -120,7 +130,7 @@ class GraphApp(QWidget):
         self.travel_btn.show()
 
         self.resume_clock()
-        self.stop_flow_animation() 
+        self.stop_flow_animation()
 
     def pause_clock(self):
         self.clock.stop()
@@ -147,7 +157,7 @@ class GraphApp(QWidget):
         QTimer.singleShot(0, self.update_graph)
 
 
-    def tick_users(self):   
+    def tick_users(self):
         for user in self.active_users:
             user.tick()
             print(user.getLoc())
@@ -172,6 +182,19 @@ class GraphApp(QWidget):
         dst_nodes = travel_nodes[1:]
         self.Handle_travel(src_node, dst_nodes, log=False)
 
+    def start_bfs(self):
+            self.bfs_mode = True
+            self.bfs_node = None
+            self.bfs_btn.hide()
+            self.bfs_done_btn.show()
+            print("BFS mode activated. Click on nodes to record your node.")
+
+    def finish_bfs(self):
+        self.bfs_mode = False
+        self.done_btn.hide()
+        self.bfs_btn.show()
+
+        self.BFS_manager()
 
     def start_travel(self):
         self.travel_mode = True
@@ -229,34 +252,34 @@ class GraphApp(QWidget):
 
     def animate_flow_arrow(self):
         elapsed_time = time.time() - self.start_time
-        
-        total_duration = self.animation_duration * (len(self.path) - 1)  
+
+        total_duration = self.animation_duration * (len(self.path) - 1)
         progress = (elapsed_time % total_duration) / total_duration
 
         # Current and next node based on current node index
         current_node = self.path[self.current_node_index]
-        next_node = self.path[(self.current_node_index + 1) % len(self.path)]  
+        next_node = self.path[(self.current_node_index + 1) % len(self.path)]
 
         start_pos = current_node.pos
         end_pos = next_node.pos
 
-        travel_time = elapsed_time % self.animation_duration  
-        travel_progress = travel_time / self.animation_duration  
+        travel_time = elapsed_time % self.animation_duration
+        travel_progress = travel_time / self.animation_duration
 
         # Move the arrow to the new position
         new_x = start_pos[0] + (end_pos[0] - start_pos[0]) * travel_progress
         new_y = start_pos[1] + (end_pos[1] - start_pos[1]) * travel_progress
-        self.flow_arrow.setPos(new_x, new_y) 
+        self.flow_arrow.setPos(new_x, new_y)
         travel_progress = travel_progress + 0.03
         if travel_progress >= 1:
             if self.current_node_index == len(self.path) - 2:
                 self.current_node_index = 0
-                self.start_time = time.time()  
+                self.start_time = time.time()
             else:
                 self.current_node_index = (self.current_node_index + 1) % len(self.path)
-                self.start_time = time.time()  
+                self.start_time = time.time()
 
-        QTimer.singleShot(50, self.animate_flow_arrow) 
+        QTimer.singleShot(50, self.animate_flow_arrow)
 
     def stop_flow_animation(self):
         # Stop the flow animation and hide the arrow
@@ -276,7 +299,7 @@ class GraphApp(QWidget):
         else:
             tsp_solver = TSP(astar)
             min_cost, best_order, nodes, path = tsp_solver.tsp(src, dsts)
-        
+
 
         u.set_route(nodes, path)
         self.active_users.append(u)
@@ -292,10 +315,10 @@ class GraphApp(QWidget):
         print("Highlighting travel path...")
 
         pens = []
-        
+
         for edge in self.edges:
             if edge in path:
-                pens.append(self.saved_traffic_colors.get(edge))              
+                pens.append(self.saved_traffic_colors.get(edge))
             else:
                 pens.append((0, 0, 0, 0))  # nothing
 
@@ -318,6 +341,12 @@ class GraphApp(QWidget):
 
         self.start_flow_animation(nodes)
 
+    def BFS_manager(self) :
+        graph = Graph(self.nodes, self.edges)
+
+        bfs_agent = BFS(graph, self.bfs_node)
+        bfs_agent.search()
+        bfs_agent.visualize()
 
     def MST_status(self) :
 
@@ -408,7 +437,7 @@ class GraphApp(QWidget):
 
     def generate_map(self):
 
-        total_nodes = 5
+        total_nodes = 50
         self.nodes = [Node(i, (0, 0),) for i in range(total_nodes)]  # positions will be updated
 
         tree_edges = self.generate_random_spanning_tree(total_nodes)
@@ -543,6 +572,10 @@ class GraphApp(QWidget):
         if self.travel_mode:
             if not self.travel_path or self.travel_path[-1] != closest_index:
                 self.travel_path.append(closest_index)
+
+        if self.bfs_mode :
+            self.bfs_node = self.nodes[closest_index]
+
         self.highlight_edges(closest_index)
 
     def highlight_edges(self, node_index):
@@ -560,7 +593,7 @@ class GraphApp(QWidget):
             node_color = ZONE_COLORS.get(edge.source.zone, 'w')
             edge_color = COLORS.get(node_color, (0, 0, 0, 255))
             if node_index == edge.source.id or node_index == edge.target.id:
-                pens.append((0, 0, 0, 255))  
+                pens.append((0, 0, 0, 255))
             else:
                 pens.append((0, 0, 0, 0))  # nothing
 

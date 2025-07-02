@@ -70,12 +70,17 @@ class AStar:
                     if ((edge.source == current_node and edge.target == neighbor) or
                         (edge.target == current_node and edge.source == neighbor))
                 ]
-                valid_edges = [e for e in connecting_edges if not self.is_edge_blocked(e)]
+                # Option 1 : dont try the blocked edges !
+                # valid_edges = [e for e in connecting_edges if not self.is_edge_blocked(e)]
+
+                # Option 2 : dublle the blocked edges' weight
+                valid_edges = connecting_edges
                 if not valid_edges:
                     continue
 
                 edge = valid_edges[0]  # You can improve edge selection if needed
-                tentative_g_score = g_score[current_node] + edge.weight
+                trafick_cost = edge.weight if self.is_edge_blocked(edge) else 0
+                tentative_g_score = g_score[current_node] + edge.weight + trafick_cost
 
                 if neighbor not in g_score or tentative_g_score < g_score[neighbor]:
                     came_from[neighbor] = current_node

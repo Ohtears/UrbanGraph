@@ -25,7 +25,7 @@ class Edge:
         self.color = color
         self.weight = weight
         self.capacity = capacity
-        self.passengers = passengers if passengers is not None else set()
+        self.passengers = passengers if passengers is not None else Queue()
 
     @property
     def source(self):
@@ -73,6 +73,8 @@ class Edge:
 class Graph:
     def __init__(self,nodes, edges):
         self.graph = {}
+        self.nodes = nodes
+        self.edges = edges
         for node in nodes:
             self.graph[node.id] = []
 
@@ -82,7 +84,25 @@ class Graph:
             self.graph[edge.target.id].append(edge)
 
     def get_edges(self, node):
-        return self.graph.get(node.id, [])
+        try :
+            return self.graph.get(node.id, [])
+        except :
+            return self.graph.get(node, [])
+
+
+class Queue :
+    def __init__(self):
+        self.queue = []
+    def push(self, value) :
+        self.queue.append(value)
+
+    def pop(self) :
+        value = self.queue[0]
+        self.queue = self.queue[1:]
+        return value
+
+    def __len__(self):
+        return len(self.queue)
 
 ZONE_COLORS = {
     0: 'c',  # cyan
