@@ -46,6 +46,8 @@ class GraphApp(QWidget):
 
         bg_pixmap = QPixmap("BackgroundImg.png")
 
+        self.arrow_timers = {}  # Dictionary to track arrows and their corresponding timers
+
         self.setWindowTitle("City")
         self.graph_widget = pg.GraphicsLayoutWidget()
         self.view = self.graph_widget.addViewBox()
@@ -121,10 +123,10 @@ class GraphApp(QWidget):
         self.stop_flow_animation() 
 
     def pause_clock(self):
-        self.clock_paused = True
+        self.clock.stop()
 
     def resume_clock(self):
-        self.clock_paused = False
+        self.clock.start()
 
     def _tick_loop(self):
         last = -1
@@ -148,7 +150,7 @@ class GraphApp(QWidget):
     def tick_users(self):   
         for user in self.active_users:
             user.tick()
-            # print(user.getLoc())
+            print(user.getLoc())
 
         self.active_users = [u for u in self.active_users if u.is_active()]
 
@@ -188,6 +190,7 @@ class GraphApp(QWidget):
             e.set_traffic_color()
             self.saved_traffic_colors[e] = e.color
 
+
     def finish_travel(self):
         self.travel_mode = False
         self.done_btn.hide()
@@ -200,25 +203,60 @@ class GraphApp(QWidget):
             dsts = [self.nodes[self.travel_path[i]] for i in range(1, len(self.travel_path))]
             self.Handle_travel(self.nodes[self.travel_path[0]], dsts, log=True, is_user=True)
 
-    def start_flow_animation(self):
-        # For each edge, create an arrow or line and animate its flow
-        for edge in self.edges:
-            flow_arrow = self.create_flow_arrow(edge)
-            self.flow_arrows.append(flow_arrow)
-            self.view.addItem(flow_arrow)
+    def start_flow_animation(self, path):
+        # Create a single arrow at the start of the first edge in the path
+        self.flow_arrow = self.create_flow_arrow(path[0])  # Start the arrow at the first node in the path
+        self.view.addItem(self.flow_arrow)
 
-    def stop_flow_animation(self):
-        # Stop and remove the flow arrows when done
-        for arrow in self.flow_arrows:
-            self.view.removeItem(arrow)
-        self.flow_arrows.clear()
+        self.path = path  # Store the path for animation
+        self.current_edge_index = 0  # Start from the first edge
+        self.animation_duration = 3  # Duration for moving across one edge
+        self.start_time = time.time()  # Keep track of the start time for animation
+
+        # Start the animation loop
+        self.animate_flow_arrow()
 
     def create_flow_arrow(self, edge):
-        # Create an arrow that moves along the edge to show direction
-        # You could use QGraphicsLineItem or QGraphicsPolygonItem for arrows
-        # Example: using a simple arrow representation
-        arrow = pg.ArrowItem(angle=0)  # You would update the angle and position dynamically
+        # Start the arrow at the position of the first node in the path
+        start_pos = edge.source.pos
+        arrow = pg.ArrowItem(angle=0)  # Create a simple arrow
+
+        # Set the initial position of the arrow
+        arrow.setPos(start_pos[0], start_pos[1])
         return arrow
+
+
+    def animate_flow_arrow(self):
+        # Calculate the total elapsed time since the animation started
+        elapsed_time = time.time() - self.start_time
+        
+        # Calculate the total progress across all edges
+        total_duration = self.animation_duration * len(self.path)  # Total time for one full cycle across the path
+        progress = (elapsed_time % total_duration) / total_duration  # Looping progress
+
+        # Get the current edge in the path
+        edge_index = int(progress * len(self.path))  # Determine the current edge based on progress
+        edge = self.path[edge_index]
+        start_pos = edge.source.pos
+        end_pos = edge.target.pos
+
+        # Calculate the position of the arrow based on the progress of the current edge
+        edge_progress = (elapsed_time % self.animation_duration) / self.animation_duration  # Progress for the current edge
+        new_x = start_pos[0] + (end_pos[0] - start_pos[0]) * edge_progress
+        new_y = start_pos[1] + (end_pos[1] - start_pos[1]) * edge_progress
+        self.flow_arrow.setPos(new_x, new_y)  # Move the arrow to the new position
+
+        # Set a timer to call this function again after a short delay (50 ms)
+        QTimer.singleShot(50, self.animate_flow_arrow)  # Repeat the animation every 50 ms
+
+
+    def stop_flow_animation(self):
+        # Stop the flow animation and hide the arrow
+        if self.flow_arrow:
+            self.flow_arrow.setVisible(False)  # Hide the arrow
+            self.flow_arrow = None  # Optionally remove the arrow object
+
+
 
     def Handle_travel(self, src, dsts, log=True, is_user=False):
         u = User(src)
@@ -249,10 +287,11 @@ class GraphApp(QWidget):
         
         for edge in self.edges:
             if edge in path:
-                pens.append(pg.mkPen(self.saved_traffic_colors.get(edge, 'k'), width=3))  # Original color with thicker line            
+                pens.append(self.saved_traffic_colors.get(edge))              
             else:
                 pens.append((0, 0, 0, 0))  # nothing
 
+        print(pens)
         adj = np.array([[e.source.id, e.target.id] for e in self.edges])
         symbols = ['o'] * len(self.nodes)
         sizes = [10] * len(self.nodes)
@@ -268,6 +307,8 @@ class GraphApp(QWidget):
             pen=np.array(pens),
             brush=brushes
         )
+
+        self.start_flow_animation(path)
 
 
     def MST_status(self) :
