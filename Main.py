@@ -107,6 +107,7 @@ class GraphApp(QWidget):
         self.bfs_btn = QPushButton("BFS")
         self.bfs_btn.clicked.connect(self.start_bfs)
         layout.addWidget(self.bfs_btn)
+        self.bfs_mode = False
 
         self.bfs_done_btn = QPushButton("Show BFS")
         self.bfs_done_btn.clicked.connect(self.finish_bfs)
@@ -424,7 +425,7 @@ class GraphApp(QWidget):
 
     def generate_map(self):
 
-        total_nodes = 500
+        total_nodes = 10
         self.nodes = [Node(i, (0, 0),) for i in range(total_nodes)]  # positions will be updated
 
         tree_edges = self.generate_random_spanning_tree(total_nodes)
