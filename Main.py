@@ -151,7 +151,7 @@ class GraphApp(QWidget):
         if not self.clock.get_clock_value():
             return
 
-        prob = random.randint(1,11) / 10
+        prob = random.randint(1,10) / 10
         print(prob)
         if prob <= 0.3 and len(self.nodes) >= 2:
             n = random.randint(2, len(self.nodes))
