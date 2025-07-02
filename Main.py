@@ -76,6 +76,8 @@ class GraphApp(QWidget):
         layout = QVBoxLayout()
         layout.addWidget(self.graph_widget)
 
+        self.saved_traffic_colors = {}  
+        self.flow_arrows = []  
         self.travel_mode = False
         self.travel_path = []
 
@@ -87,6 +89,11 @@ class GraphApp(QWidget):
         self.done_btn.clicked.connect(self.finish_travel)
         self.done_btn.hide()
         layout.addWidget(self.done_btn)
+
+        self.exit_travel_mode_btn = QPushButton("exit_travel_mode")
+        self.exit_travel_mode_btn.clicked.connect(self.exit_travel)
+        self.exit_travel_mode_btn.hide()
+        layout.addWidget(self.exit_travel_mode_btn)
 
         self.traffic_btn = QPushButton("Toggle Traffic Colors")
         self.traffic_btn.setCheckable(True)
@@ -106,6 +113,19 @@ class GraphApp(QWidget):
 
         self.show_traffic = False
 
+    def exit_travel(self):
+        self.exit_travel_mode_btn.hide()
+        self.travel_btn.show()
+
+        self.resume_clock()
+        self.stop_flow_animation() 
+
+    def pause_clock(self):
+        self.clock_paused = True
+
+    def resume_clock(self):
+        self.clock_paused = False
+
     def _tick_loop(self):
         last = -1
         while True:
@@ -113,7 +133,7 @@ class GraphApp(QWidget):
             if current != last:
                 last = current
                 if current == 1:
-                    print("TICK", datetime.now().strftime("%H:%M:%S.%f"))
+                    # print("TICK", datetime.now().strftime("%H:%M:%S.%f"))
                     self.tick_users()
                     self.spawn_random_user()
             time.sleep(0.05)
@@ -128,9 +148,7 @@ class GraphApp(QWidget):
     def tick_users(self):   
         for user in self.active_users:
             user.tick()
-            print(user.getLoc())
-            # for edge in self.edges:
-            #     print(f"Edge {edge} has {len(edge.passengers)} passengers")
+            # print(user.getLoc())
 
         self.active_users = [u for u in self.active_users if u.is_active()]
 
@@ -142,7 +160,7 @@ class GraphApp(QWidget):
         if len(self.nodes) < 2:
             return
 
-        for _ in range(3):
+        for _ in range(2):
             threading.Thread(target=self._spawn_one_user, daemon=True).start()
 
     def _spawn_one_user(self):
@@ -150,7 +168,7 @@ class GraphApp(QWidget):
         travel_nodes = random.sample(self.nodes, n)
         src_node = travel_nodes[0]
         dst_nodes = travel_nodes[1:]
-        self.Handle_travel(src_node, dst_nodes, log=True)
+        self.Handle_travel(src_node, dst_nodes, log=False)
 
 
     def start_travel(self):
@@ -160,18 +178,49 @@ class GraphApp(QWidget):
         self.done_btn.show()
         print("Travel mode activated. Click on nodes to record your path.")
 
+        self.pause_clock()
+        self.save_traffic_colors()
+
+    def save_traffic_colors(self):
+        # Save the traffic color for each edge, updating it first
+        self.saved_traffic_colors = {}
+        for e in self.edges:
+            e.set_traffic_color()
+            self.saved_traffic_colors[e] = e.color
+
     def finish_travel(self):
         self.travel_mode = False
         self.done_btn.hide()
-        self.travel_btn.show()
+        self.exit_travel_mode_btn.show()
+        # self.travel_btn.show()
         if len(self.travel_path) == 0 :
-            print("Travel has been canseled !")
+            print("Travel has been canceled !")
 
         elif len(self.travel_path) > 1 and len(self.travel_path) <= len(self.nodes) :
             dsts = [self.nodes[self.travel_path[i]] for i in range(1, len(self.travel_path))]
-            self.Handle_travel(self.nodes[self.travel_path[0]], dsts)
+            self.Handle_travel(self.nodes[self.travel_path[0]], dsts, log=True, is_user=True)
 
-    def Handle_travel(self, src, dsts, log=True):
+    def start_flow_animation(self):
+        # For each edge, create an arrow or line and animate its flow
+        for edge in self.edges:
+            flow_arrow = self.create_flow_arrow(edge)
+            self.flow_arrows.append(flow_arrow)
+            self.view.addItem(flow_arrow)
+
+    def stop_flow_animation(self):
+        # Stop and remove the flow arrows when done
+        for arrow in self.flow_arrows:
+            self.view.removeItem(arrow)
+        self.flow_arrows.clear()
+
+    def create_flow_arrow(self, edge):
+        # Create an arrow that moves along the edge to show direction
+        # You could use QGraphicsLineItem or QGraphicsPolygonItem for arrows
+        # Example: using a simple arrow representation
+        arrow = pg.ArrowItem(angle=0)  # You would update the angle and position dynamically
+        return arrow
+
+    def Handle_travel(self, src, dsts, log=True, is_user=False):
         u = User(src)
         astar = AStar(self.nodes, self.edges)
         nodes, path = [], []
@@ -190,6 +239,35 @@ class GraphApp(QWidget):
             print(f"User{u.id} starting at {src.id} to {[d.id for d in dsts]}")
             print(f"the minimum cost is {min_cost}")
             print(f"best order of destinations {best_order}")
+        if is_user:
+            self.highlight_travel_path(path)
+
+    def highlight_travel_path(self, path):
+        print("Highlighting travel path...")
+
+        pens = []
+        
+        for edge in self.edges:
+            if edge in path:
+                pens.append(pg.mkPen(self.saved_traffic_colors.get(edge, 'k'), width=3))  # Original color with thicker line            
+            else:
+                pens.append((0, 0, 0, 0))  # nothing
+
+        adj = np.array([[e.source.id, e.target.id] for e in self.edges])
+        symbols = ['o'] * len(self.nodes)
+        sizes = [10] * len(self.nodes)
+        brushes = [ZONE_COLORS.get(node.zone, 'w') for node in self.nodes]
+
+        # Update the graph to highlight the path
+        self.graph_item.setData(
+            pos=self.pos,
+            adj=adj,
+            size=sizes,
+            symbol=symbols,
+            pxMode=True,
+            pen=np.array(pens),
+            brush=brushes
+        )
 
 
     def MST_status(self) :
@@ -262,7 +340,7 @@ class GraphApp(QWidget):
             for edge in self.edges:
                 edge.set_traffic_color()
                 pens.append(edge.color)
-                print(f" {edge.color} for edge {edge.source.id} <-> {edge.target.id}")
+                # print(f" {edge.color} for edge {edge.source.id} <-> {edge.target.id}")
         else:
             pens = [pg.mkPen('k').color().getRgb()] * len(self.edges)
 
@@ -281,7 +359,7 @@ class GraphApp(QWidget):
 
     def generate_map(self):
 
-        total_nodes = 4
+        total_nodes = 5
         self.nodes = [Node(i, (0, 0),) for i in range(total_nodes)]  # positions will be updated
 
         tree_edges = self.generate_random_spanning_tree(total_nodes)
@@ -433,7 +511,7 @@ class GraphApp(QWidget):
             node_color = ZONE_COLORS.get(edge.source.zone, 'w')
             edge_color = COLORS.get(node_color, (0, 0, 0, 255))
             if node_index == edge.source.id or node_index == edge.target.id:
-                pens.append(edge_color)
+                pens.append((0, 0, 0, 255))  
             else:
                 pens.append((0, 0, 0, 0))  # nothing
 

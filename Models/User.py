@@ -55,3 +55,4 @@ class User:
         elif isinstance(self.current_loc, Edge):
             return f"User{self.id} is on Edge {self.current_loc}"
         return "User location unknown"
+        
