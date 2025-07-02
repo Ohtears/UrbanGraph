@@ -10,6 +10,9 @@ import networkx as nx
 import random
 import threading
 import time
+from datetime import datetime
+from PyQt6.QtCore import QTimer
+
 # Add project root to sys.path for module imports
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from Models.data_obj import Node, Edge, Graph, ZONE_COLORS, COLORS
@@ -18,6 +21,16 @@ from Utils.MST import PrimMST
 from Utils.AStar import AStar
 from Utils.Clock import ClockGenerator
 from Utils.TSP import TSP
+
+import builtins
+
+def print_with_timestamp(*args, **kwargs):
+    now = datetime.now().strftime("[%H:%M:%S.%f]")
+    builtins._original_print(now, *args, **kwargs)
+
+builtins._original_print = builtins.print
+builtins.print = print_with_timestamp
+
 
 class GraphApp(QWidget):
     def __init__(self, clock):
@@ -75,6 +88,12 @@ class GraphApp(QWidget):
         self.done_btn.hide()
         layout.addWidget(self.done_btn)
 
+        self.traffic_btn = QPushButton("Toggle Traffic Colors")
+        self.traffic_btn.setCheckable(True)
+        self.traffic_btn.clicked.connect(self.toggle_traffic)
+        layout.addWidget(self.traffic_btn)
+
+
         self.add_node_btn = QPushButton("Add Node")
         self.add_node_btn.clicked.connect(self.add_node)
         layout.addWidget(self.add_node_btn)
@@ -85,35 +104,52 @@ class GraphApp(QWidget):
 
         self.setLayout(layout)
 
-    def _tick_loop(self):
-        while True:
-            if self.clock.get_clock_value() == 1:
-                self.tick_users()
-                self.spawn_random_user()
-                time.sleep(self.clock.on_time)
-            else:
-                time.sleep(0.1)
+        self.show_traffic = False
 
-    def tick_users(self):
+    def _tick_loop(self):
+        last = -1
+        while True:
+            current = self.clock.get_clock_value()
+            if current != last:
+                last = current
+                if current == 1:
+                    print("TICK", datetime.now().strftime("%H:%M:%S.%f"))
+                    self.tick_users()
+                    self.spawn_random_user()
+            time.sleep(0.05)
+
+
+    def toggle_traffic(self):
+        self.show_traffic = self.traffic_btn.isChecked()
+        print("Traffic visualization:", "ON" if self.show_traffic else "OFF")
+        QTimer.singleShot(0, self.update_graph)
+
+
+    def tick_users(self):   
         for user in self.active_users:
             user.tick()
             print(user.getLoc())
-        # Remove users that are finished
+            # for edge in self.edges:
+            #     print(f"Edge {edge} has {len(edge.passengers)} passengers")
+
         self.active_users = [u for u in self.active_users if u.is_active()]
+
+        if self.show_traffic:
+            QTimer.singleShot(0, self.update_graph)
+
 
     def spawn_random_user(self):
         if len(self.nodes) < 2:
             return
 
-        prob = random.random()
-        if prob > 0.3:
-            return
+        for _ in range(3):
+            threading.Thread(target=self._spawn_one_user, daemon=True).start()
 
+    def _spawn_one_user(self):
         n = random.randint(2, len(self.nodes))
         travel_nodes = random.sample(self.nodes, n)
         src_node = travel_nodes[0]
         dst_nodes = travel_nodes[1:]
-
         self.Handle_travel(src_node, dst_nodes, log=True)
 
 
@@ -150,7 +186,7 @@ class GraphApp(QWidget):
         u.set_route(nodes, path)
         self.active_users.append(u)
 
-        if log:
+        if log and len(dsts) > 1:
             print(f"User{u.id} starting at {src.id} to {[d.id for d in dsts]}")
             print(f"the minimum cost is {min_cost}")
             print(f"best order of destinations {best_order}")
@@ -197,10 +233,10 @@ class GraphApp(QWidget):
         New_edges = []
         edges_count = np.random.randint(1,5)
         for _ in range(edges_count) :
-            edge_weght = np.random.randint(1, 20)
+            edge_weight = np.random.randint(1, 20)
             edge_cap = np.random.randint(5, 30)
 
-            New_edges.append(Edge(random.choice(self.nodes), new_node, edge_weght, edge_cap))
+            New_edges.append(Edge(random.choice(self.nodes), new_node, edge_weight, edge_cap))
 
 
         self.edges.extend(New_edges)
@@ -218,9 +254,19 @@ class GraphApp(QWidget):
 
         symbols = ['o'] * len(self.nodes)
         sizes = [10] * len(self.nodes)
+        brushes = [ZONE_COLORS.get(node.zone, 'w') for node in self.nodes]
 
-        # Use zone to set brush color
-        brushes = [ZONE_COLORS.get(node.zone, 'w') for node in self.nodes]  # fallback to white
+        # Color logic
+        if self.show_traffic:
+            pens = []
+            for edge in self.edges:
+                edge.set_traffic_color()
+                pens.append(edge.color)
+                print(f" {edge.color} for edge {edge.source.id} <-> {edge.target.id}")
+        else:
+            pens = [pg.mkPen('k').color().getRgb()] * len(self.edges)
+
+        pens = np.array(pens, dtype=np.uint8)
 
         self.graph_item.setData(
             pos=self.pos,
@@ -228,14 +274,14 @@ class GraphApp(QWidget):
             size=sizes,
             symbol=symbols,
             pxMode=True,
-            pen=pg.mkPen('k'),
+            pen=pens,
             brush=brushes
         )
 
 
     def generate_map(self):
 
-        total_nodes = 20
+        total_nodes = 4
         self.nodes = [Node(i, (0, 0),) for i in range(total_nodes)]  # positions will be updated
 
         tree_edges = self.generate_random_spanning_tree(total_nodes)
@@ -352,7 +398,7 @@ class GraphApp(QWidget):
         brushes = [ZONE_COLORS.get(node.zone, 'w') for node in self.nodes]
 
         if distances[closest_index] > 3:  # Ignore if too far from a node
-            for edge in self.edges:
+            for _ in self.edges:
                 pens.append((0, 0, 0, 255))  #black
             self.graph_item.setData(
                 pos=self.pos,

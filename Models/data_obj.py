@@ -55,19 +55,19 @@ class Edge:
     def nodes(self):
         return tuple(self._nodes)
 
-    @property
-    def SetTraficColor(self):
+    def set_traffic_color(self):
         occupancy_ratio = len(self.passengers) / self.capacity
-        if occupancy_ratio < 0.3:
-            self.color = (0, 200, 0, 255)
-        elif occupancy_ratio < 0.6:
-            self.color = (255, 255, 0, 255)
-        elif occupancy_ratio < 0.8:
-            self.color = (255, 0, 0, 255)
-        elif occupancy_ratio < 1:
-            self.color = (128, 0, 0, 255)
+
+        if len(self.passengers) == 0:
+            self.color = (0, 200, 0, 255) # Green for no passengers
+        elif len(self.passengers) == 1:
+            self.color = (255, 255, 0, 255) # Yellow for 1 passenger
+        elif len(self.passengers) == 2:
+            self.color = (255, 0, 0, 255) # Red for 2 passengers
+        elif len(self.passengers) == 3:
+            self.color = (128, 0, 0, 255) # Dark red for 3 passengers
         else:
-            self.color = (0, 0, 0, 255)
+            self.color = (0, 0, 0, 255) # Black for more than 3 passengers or full capacity
 
 
 class Graph:
