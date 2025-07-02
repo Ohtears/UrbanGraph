@@ -122,8 +122,8 @@ class GraphApp(QWidget):
         layout.addWidget(self.generate_btn)
 
         self.setLayout(layout)
-
         self.show_traffic = False
+        self.clock_started = False  # Track if clock has started
 
     def exit_travel(self):
         self.exit_travel_mode_btn.hide()
@@ -150,12 +150,10 @@ class GraphApp(QWidget):
                     self.spawn_random_user()
             time.sleep(0.05)
 
-
     def toggle_traffic(self):
         self.show_traffic = self.traffic_btn.isChecked()
         print("Traffic visualization:", "ON" if self.show_traffic else "OFF")
         QTimer.singleShot(0, self.update_graph)
-
 
     def tick_users(self):
         for user in self.active_users:
@@ -166,7 +164,6 @@ class GraphApp(QWidget):
 
         if self.show_traffic:
             QTimer.singleShot(0, self.update_graph)
-
 
     def spawn_random_user(self):
         if len(self.nodes) < 2:
@@ -213,7 +210,6 @@ class GraphApp(QWidget):
             e.set_traffic_color()
             self.saved_traffic_colors[e] = e.color
 
-
     def finish_travel(self):
         self.travel_mode = False
         self.done_btn.hide()
@@ -239,7 +235,6 @@ class GraphApp(QWidget):
         # Start the animation loop
         self.animate_flow_arrow()
 
-
     def create_flow_arrow(self, node):
         # Start the arrow at the position of the first node in the path
         start_pos = node.pos
@@ -248,7 +243,6 @@ class GraphApp(QWidget):
         # Set the initial position of the arrow
         arrow.setPos(start_pos[0], start_pos[1])
         return arrow
-
 
     def animate_flow_arrow(self):
         elapsed_time = time.time() - self.start_time
@@ -287,8 +281,6 @@ class GraphApp(QWidget):
             self.flow_arrow.setVisible(False)  # Hide the arrow
             self.flow_arrow = None  # Optionally remove the arrow object
 
-
-
     def Handle_travel(self, src, dsts, log=True, is_user=False):
         u = User(src)
         astar = AStar(self.nodes, self.edges)
@@ -299,7 +291,6 @@ class GraphApp(QWidget):
         else:
             tsp_solver = TSP(astar)
             min_cost, best_order, nodes, path = tsp_solver.tsp(src, dsts)
-
 
         u.set_route(nodes, path)
         self.active_users.append(u)
@@ -374,7 +365,6 @@ class GraphApp(QWidget):
         self.mst_solver.compute_mst(self.nodes, self.edges)
         self.MST_status()
 
-
     def AddNodeToMST(self, node, edges) :
         self.mst_solver.add_node(node, edges)
         self.MST_status()
@@ -394,13 +384,11 @@ class GraphApp(QWidget):
 
             New_edges.append(Edge(random.choice(self.nodes), new_node, edge_weight, edge_cap))
 
-
         self.edges.extend(New_edges)
         self.nodes.append(new_node)
         self.update_graph()
 
         self.AddNodeToMST(new_node, New_edges)
-
 
     def update_graph(self):
         if self.edges:
@@ -434,10 +422,9 @@ class GraphApp(QWidget):
             brush=brushes
         )
 
-
     def generate_map(self):
 
-        total_nodes = 50
+        total_nodes = 500
         self.nodes = [Node(i, (0, 0),) for i in range(total_nodes)]  # positions will be updated
 
         tree_edges = self.generate_random_spanning_tree(total_nodes)
@@ -484,6 +471,13 @@ class GraphApp(QWidget):
 
         self.focus_on_zone(0)  # Focus on North
 
+        # Start the clock after 3.5 seconds if not already started
+        if not self.clock_started:
+            QTimer.singleShot(3500, self.start_clock_after_map)
+            self.clock_started = True
+
+    def start_clock_after_map(self):
+        self.clock.start()
 
     def assign_zone(self):
         for i, node in enumerate(self.nodes):
@@ -504,7 +498,6 @@ class GraphApp(QWidget):
                 else:
                     node.zone = 3  # West
 
-
     def focus_on_zone(self, zone_id):
         zone_nodes = [n for n in self.nodes if n.zone == zone_id]
         if not zone_nodes:
@@ -517,7 +510,6 @@ class GraphApp(QWidget):
             xRange=(min_xy[0] - pad, max_xy[0] + pad),
             yRange=(min_xy[1] - pad, max_xy[1] + pad)
         )
-
 
     def generate_random_spanning_tree(self, n):
         edges = []
@@ -614,7 +606,6 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)
 
     clock = ClockGenerator()
-    clock.start()
 
     win = GraphApp(clock)
     win.show()
