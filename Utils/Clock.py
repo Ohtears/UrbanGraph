@@ -35,22 +35,3 @@ class ClockGenerator:
     def get_clock_value(self):
         return self.clock_value
 
-# Example usage
-def main():
-    # Create clock generator
-    clock = ClockGenerator()
-
-    # Start the clock generator
-    clock.start()
-
-    try:
-        # Let it run for a while (e.g., 30 seconds)
-        time.sleep(30)
-    except KeyboardInterrupt:
-        print("Stopping clock generator...")
-    finally:
-        # Stop the clock generator
-        clock.stop()
-
-if __name__ == "__main__":
-    main()

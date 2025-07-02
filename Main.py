@@ -23,6 +23,14 @@ class GraphApp(QWidget):
     def __init__(self, clock):
         super().__init__()
         self.clock = clock
+
+        self.active_users = []
+        self._clock_tick_thread = threading.Thread(
+            target=self._tick_loop,
+            daemon=True
+        )
+        self._clock_tick_thread.start()
+
         bg_pixmap = QPixmap("BackgroundImg.png")
 
         self.setWindowTitle("City")
@@ -31,8 +39,6 @@ class GraphApp(QWidget):
         self.view.setAspectLocked()
         self.view.setMouseMode(self.view.PanMode)
         self.view.scene().sigMouseClicked.connect(self.on_click)
-
-
 
         bg_item = QGraphicsPixmapItem(bg_pixmap)
         bg_item.setZValue(-10)
@@ -79,12 +85,37 @@ class GraphApp(QWidget):
 
         self.setLayout(layout)
 
-        self._random_traffic_thread = threading.Thread(
-            target=self._random_traffic_loop,
-            daemon=True
-        )
-        # TODO : barname inja bakht mide !!!
-        self._random_traffic_thread.start()
+    def _tick_loop(self):
+        while True:
+            if self.clock.get_clock_value() == 1:
+                self.tick_users()
+                self.spawn_random_user()
+                time.sleep(self.clock.on_time)
+            else:
+                time.sleep(0.1)
+
+    def tick_users(self):
+        for user in self.active_users:
+            user.tick()
+            print(user.getLoc())
+        # Remove users that are finished
+        self.active_users = [u for u in self.active_users if u.is_active()]
+
+    def spawn_random_user(self):
+        if len(self.nodes) < 2:
+            return
+
+        prob = random.random()
+        if prob > 0.3:
+            return
+
+        n = random.randint(2, len(self.nodes))
+        travel_nodes = random.sample(self.nodes, n)
+        src_node = travel_nodes[0]
+        dst_nodes = travel_nodes[1:]
+
+        self.Handle_travel(src_node, dst_nodes, log=True)
+
 
     def start_travel(self):
         self.travel_mode = True
@@ -104,70 +135,25 @@ class GraphApp(QWidget):
             dsts = [self.nodes[self.travel_path[i]] for i in range(1, len(self.travel_path))]
             self.Handle_travel(self.nodes[self.travel_path[0]], dsts)
 
-
-    def Handle_travel(self, src, dsts, log=True) :
-
+    def Handle_travel(self, src, dsts, log=True):
         u = User(src)
         astar = AStar(self.nodes, self.edges)
         nodes, path = [], []
 
-        if len(self.travel_path) == 2 :
+        if len(dsts) == 1:
             nodes, path = astar.a_star_search(src, dsts[0])
-
-        else :
-
+        else:
             tsp_solver = TSP(astar)
-
-            print(src)
-            print(dsts)
-
             min_cost, best_order, nodes, path = tsp_solver.tsp(src, dsts)
+        
 
-            print(f"Minimum cost: {min_cost}")
-            print(f"Best order of destinations: {best_order}")
-            print(nodes)
-            print(path)
+        u.set_route(nodes, path)
+        self.active_users.append(u)
 
-        u.travel(nodes,path,self.clock, log)
-
-    def _random_traffic_loop(self):
-        """
-        A background loop that periodically invokes RandomTrafic().
-        This runs in its own daemon thread so it won't block the GUI.
-        """
-        while True:
-            # You could also use self.clock.get_clock_value() to gate your calls
-            # or even read a user‐configurable interval.
-            try :
-                self.RandomTrafic()
-            except :
-                print("Error in thread")
-
-            time.sleep(1)
-
-
-    def RandomTrafic(self):
-
-        if not self.clock.get_clock_value():
-            return
-
-        prob = random.randint(1,10) / 10
-        print(prob)
-        if prob <= 0.3 and len(self.nodes) >= 2:
-            n = random.randint(2, len(self.nodes))
-            travel_nodes = random.sample(self.nodes, n)
-            print("Random Travel started:", [node.id for node in travel_nodes])
-
-            # origin is the first, the rest are destinations
-            src_node = travel_nodes[0]
-            dst_nodes = travel_nodes[1:]
-
-            t = threading.Thread(
-                target=self.Handle_travel,
-                args=(src_node, dst_nodes, False),
-                daemon=True
-            )
-            t.start()
+        if log:
+            print(f"User{u.id} starting at {src.id} to {[d.id for d in dsts]}")
+            print(f"the minimum cost is {min_cost}")
+            print(f"best order of destinations {best_order}")
 
 
     def MST_status(self) :
