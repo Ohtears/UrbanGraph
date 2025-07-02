@@ -203,22 +203,23 @@ class GraphApp(QWidget):
             dsts = [self.nodes[self.travel_path[i]] for i in range(1, len(self.travel_path))]
             self.Handle_travel(self.nodes[self.travel_path[0]], dsts, log=True, is_user=True)
 
-    def start_flow_animation(self, path):
-        # Create a single arrow at the start of the first edge in the path
-        self.flow_arrow = self.create_flow_arrow(path[0])  # Start the arrow at the first node in the path
+    def start_flow_animation(self, nodes):
+        # Create a single arrow at the start of the first node in the path
+        self.flow_arrow = self.create_flow_arrow(nodes[0])  # Start the arrow at the first node in the path
         self.view.addItem(self.flow_arrow)
 
-        self.path = path  # Store the path for animation
-        self.current_edge_index = 0  # Start from the first edge
-        self.animation_duration = 3  # Duration for moving across one edge
+        self.path = nodes  # Store the path (nodes) for animation
+        self.current_node_index = 0  # Start from the first node
+        self.animation_duration = 3  # Duration for moving across one edge (in seconds)
         self.start_time = time.time()  # Keep track of the start time for animation
 
         # Start the animation loop
         self.animate_flow_arrow()
 
-    def create_flow_arrow(self, edge):
+
+    def create_flow_arrow(self, node):
         # Start the arrow at the position of the first node in the path
-        start_pos = edge.source.pos
+        start_pos = node.pos
         arrow = pg.ArrowItem(angle=0)  # Create a simple arrow
 
         # Set the initial position of the arrow
@@ -227,28 +228,35 @@ class GraphApp(QWidget):
 
 
     def animate_flow_arrow(self):
-        # Calculate the total elapsed time since the animation started
         elapsed_time = time.time() - self.start_time
         
-        # Calculate the total progress across all edges
-        total_duration = self.animation_duration * len(self.path)  # Total time for one full cycle across the path
-        progress = (elapsed_time % total_duration) / total_duration  # Looping progress
+        total_duration = self.animation_duration * (len(self.path) - 1)  
+        progress = (elapsed_time % total_duration) / total_duration
 
-        # Get the current edge in the path
-        edge_index = int(progress * len(self.path))  # Determine the current edge based on progress
-        edge = self.path[edge_index]
-        start_pos = edge.source.pos
-        end_pos = edge.target.pos
+        # Current and next node based on current node index
+        current_node = self.path[self.current_node_index]
+        next_node = self.path[(self.current_node_index + 1) % len(self.path)]  
 
-        # Calculate the position of the arrow based on the progress of the current edge
-        edge_progress = (elapsed_time % self.animation_duration) / self.animation_duration  # Progress for the current edge
-        new_x = start_pos[0] + (end_pos[0] - start_pos[0]) * edge_progress
-        new_y = start_pos[1] + (end_pos[1] - start_pos[1]) * edge_progress
-        self.flow_arrow.setPos(new_x, new_y)  # Move the arrow to the new position
+        start_pos = current_node.pos
+        end_pos = next_node.pos
 
-        # Set a timer to call this function again after a short delay (50 ms)
-        QTimer.singleShot(50, self.animate_flow_arrow)  # Repeat the animation every 50 ms
+        travel_time = elapsed_time % self.animation_duration  
+        travel_progress = travel_time / self.animation_duration  
 
+        # Move the arrow to the new position
+        new_x = start_pos[0] + (end_pos[0] - start_pos[0]) * travel_progress
+        new_y = start_pos[1] + (end_pos[1] - start_pos[1]) * travel_progress
+        self.flow_arrow.setPos(new_x, new_y) 
+        travel_progress = travel_progress + 0.03
+        if travel_progress >= 1:
+            if self.current_node_index == len(self.path) - 2:
+                self.current_node_index = 0
+                self.start_time = time.time()  
+            else:
+                self.current_node_index = (self.current_node_index + 1) % len(self.path)
+                self.start_time = time.time()  
+
+        QTimer.singleShot(50, self.animate_flow_arrow) 
 
     def stop_flow_animation(self):
         # Stop the flow animation and hide the arrow
@@ -278,9 +286,9 @@ class GraphApp(QWidget):
             print(f"the minimum cost is {min_cost}")
             print(f"best order of destinations {best_order}")
         if is_user:
-            self.highlight_travel_path(path)
+            self.highlight_travel_path(path, nodes)
 
-    def highlight_travel_path(self, path):
+    def highlight_travel_path(self, path, nodes):
         print("Highlighting travel path...")
 
         pens = []
@@ -308,7 +316,7 @@ class GraphApp(QWidget):
             brush=brushes
         )
 
-        self.start_flow_animation(path)
+        self.start_flow_animation(nodes)
 
 
     def MST_status(self) :
