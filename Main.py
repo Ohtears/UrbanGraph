@@ -12,6 +12,8 @@ import threading
 import time
 from datetime import datetime
 from PyQt6.QtCore import QTimer
+from collections import deque
+import heapq
 
 # Add project root to sys.path for module imports
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -38,7 +40,8 @@ class GraphApp(QWidget):
     def __init__(self, clock):
         super().__init__()
         self.clock = clock
-
+        self.tsp_queue = []
+        self.tsp_working = False
         self.active_users = []
         self._clock_tick_thread = threading.Thread(
             target=self._tick_loop,
@@ -157,10 +160,12 @@ class GraphApp(QWidget):
         QTimer.singleShot(0, self.update_graph)
 
     def tick_users(self):
+        # Only process users that have completed TSP and are active
         for user in self.active_users:
             user.tick()
             print(user.getLoc())
 
+        # Remove inactive users
         self.active_users = [u for u in self.active_users if u.is_active()]
 
         if self.show_traffic:
@@ -174,11 +179,53 @@ class GraphApp(QWidget):
             threading.Thread(target=self._spawn_one_user, daemon=True).start()
 
     def _spawn_one_user(self):
-        n = random.randint(2, len(self.nodes))
+        n = random.randint(2, len(self.nodes)) if len(self.nodes) < 21 else random.randint(2, 21)
         travel_nodes = random.sample(self.nodes, n)
         src_node = travel_nodes[0]
         dst_nodes = travel_nodes[1:]
-        self.Handle_travel(src_node, dst_nodes, log=False)
+
+        # Create user and add to queue instead of handling immediately
+        user = User(src_node, priority=2)
+        heapq.heappush(self.tsp_queue, (user.priority, user, src_node, dst_nodes, False))
+
+        # Start processing if not already working
+        if not self.tsp_working:
+            self.process_tsp_queue()
+
+    def process_tsp_queue(self):
+        if not self.tsp_queue or self.tsp_working:
+            return
+
+        self.tsp_working = True
+        _, user, src_node, dst_nodes, log = heapq.heappop(self.tsp_queue)
+
+        # Calculate TSP in a separate thread to avoid blocking UI
+        def calculate_tsp():
+            astar = AStar(self.nodes, self.edges)
+            tsp_solver = TSP(astar)
+
+            if len(dst_nodes) == 1:
+                nodes, path = astar.a_star_search(src_node, dst_nodes[0])
+                min_cost = path[-1].weight if path else 0
+                best_order = [dst_nodes[0].id]
+            else:
+                min_cost, best_order, nodes, path = tsp_solver.tsp(src_node, dst_nodes)
+
+            # When calculation is done, add to active users
+            user.set_route(nodes, path)
+            self.active_users.append(user)
+
+            if log and len(dst_nodes) > 1:
+                print(f"User{user.id} starting at {src_node.id} to {[d.id for d in dst_nodes]}")
+                print(f"the minimum cost is {min_cost}")
+                print(f"best order of destinations {best_order}")
+
+            # Mark TSP as done and process next in queue
+            self.tsp_working = False
+            QTimer.singleShot(0, self.process_tsp_queue)  # Process next in queue
+
+        # Start calculation in a thread
+        threading.Thread(target=calculate_tsp, daemon=True).start()
 
     def start_bfs(self):
             self.bfs_mode = True
@@ -284,24 +331,41 @@ class GraphApp(QWidget):
 
     def Handle_travel(self, src, dsts, log=True, is_user=False):
         u = User(src)
-        astar = AStar(self.nodes, self.edges)
-        nodes, path = [], []
 
-        if len(dsts) == 1:
-            nodes, path = astar.a_star_search(src, dsts[0])
-        else:
-            tsp_solver = TSP(astar)
-            min_cost, best_order, nodes, path = tsp_solver.tsp(src, dsts)
-
-        u.set_route(nodes, path)
-        self.active_users.append(u)
-
-        if log and len(dsts) > 1:
-            print(f"User{u.id} starting at {src.id} to {[d.id for d in dsts]}")
-            print(f"the minimum cost is {min_cost}")
-            print(f"best order of destinations {best_order}")
         if is_user:
-            self.highlight_travel_path(path, nodes)
+            # For user-initiated travel, highlight path when done
+
+            # Add to queue with callback
+            astar = AStar(self.nodes, self.edges)
+            tsp_solver = TSP(astar)
+
+            if len(dsts) == 1:
+                nodes, path = astar.a_star_search(src, dsts[0])
+                min_cost = path[-1].weight if path else 0
+                best_order = [dsts[0].id]
+            else:
+                min_cost, best_order, nodes, path = tsp_solver.tsp(src, dsts)
+
+            # When calculation is done, add to active users
+            u.set_route(nodes, path)
+            self.active_users.append(u)
+
+            if log and len(dsts) > 1:
+                print(f"User{u.id} starting at {src.id} to {[d.id for d in dsts]}")
+                print(f"the minimum cost is {min_cost}")
+                print(f"best order of destinations {best_order}")
+
+
+            self.highlight_travel_path(u.travel_path, u.travel_nodes)
+
+
+        else:
+            # For random spawns, just add to queue
+            # heapq.heappush(self.tsp_queue, (u, src, dsts, True))
+            heapq.heappush(self.tsp_queue, (u.priority, u, src, dsts, True))
+
+            if not self.tsp_working:
+                self.process_tsp_queue()
 
     def highlight_travel_path(self, path, nodes):
         print("Highlighting travel path...")
@@ -425,7 +489,7 @@ class GraphApp(QWidget):
 
     def generate_map(self):
 
-        total_nodes = 10
+        total_nodes = 100
         self.nodes = [Node(i, (0, 0),) for i in range(total_nodes)]  # positions will be updated
 
         tree_edges = self.generate_random_spanning_tree(total_nodes)

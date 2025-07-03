@@ -4,16 +4,21 @@ class User:
 
     id_incr = 0
 
-    def __init__(self, current_loc=None):
+    def __init__(self, current_loc=None, priority=1):
         self.current_loc = current_loc
         self.travel_nodes = []
         self.travel_path = []
         self.node_index = 0
         self.path_index = 0
         self.done = True
+        self.priority = priority
         self.id = User.id_incr
         User.id_incr += 1
 
+    def __lt__(self, op) :
+        return self.priority < op.priority
+    def __gt__(self, op) :
+        return self.priority > op.priority
     def set_route(self, nodes, path):
         self.travel_nodes = nodes
         self.travel_path = path
