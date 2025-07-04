@@ -14,6 +14,8 @@ from datetime import datetime
 from PyQt6.QtCore import QTimer
 from collections import deque
 import heapq
+from collections import defaultdict
+from itertools import combinations
 
 # Add project root to sys.path for module imports
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -76,6 +78,7 @@ class GraphApp(QWidget):
 
         self.nodes = []
         self.edges = []
+        self.border_nodes = defaultdict()
         self.pos = np.array([])
 
         self.mst_solver = PrimMST()
@@ -205,11 +208,11 @@ class GraphApp(QWidget):
             tsp_solver = TSP(astar)
 
             if len(dst_nodes) == 1:
-                nodes, path = astar.a_star_search(src_node, dst_nodes[0])
+                nodes, path = astar.performA_star(src_node, dst_nodes[0], self.border_nodes)
                 min_cost = path[-1].weight if path else 0
                 best_order = [dst_nodes[0].id]
             else:
-                min_cost, best_order, nodes, path = tsp_solver.tsp(src_node, dst_nodes)
+                min_cost, best_order, nodes, path = tsp_solver.tsp(src_node, dst_nodes, self.border_nodes)
 
             # When calculation is done, add to active users
             user.set_route(nodes, path)
@@ -340,11 +343,12 @@ class GraphApp(QWidget):
             tsp_solver = TSP(astar)
 
             if len(dsts) == 1:
-                nodes, path = astar.a_star_search(src, dsts[0])
+                nodes, path = astar.performA_star(src, dsts[0], self.border_nodes)
+                print(nodes,path)
                 min_cost = path[-1].weight if path else 0
                 best_order = [dsts[0].id]
             else:
-                min_cost, best_order, nodes, path = tsp_solver.tsp(src, dsts)
+                min_cost, best_order, nodes, path = tsp_solver.tsp(src, dsts, self.border_nodes)
 
             # When calculation is done, add to active users
             u.set_route(nodes, path)
@@ -487,6 +491,34 @@ class GraphApp(QWidget):
             brush=brushes
         )
 
+
+
+    def find_border_nodes(self):
+        # Get unique zones from the nodes
+        zones = sorted(set(node.zone for node in self.nodes if node.zone is not None))
+
+        # Generate all zone-to-zone keys
+        zone_pairs = [f"{a}to{b}" for a, b in combinations(zones, 2)]
+        border_dict = {key: None for key in zone_pairs}
+
+        # Temporary storage with sets to avoid duplicates
+        temp_dict = defaultdict(set)
+
+        for edge in self.edges:
+            n1, n2 = edge.nodes
+            z1, z2 = n1.zone, n2.zone
+
+            if z1 != z2:
+                key = f"{min(z1, z2)}to{max(z1, z2)}"
+                temp_dict[key].add(n1)
+                temp_dict[key].add(n2)
+
+        # Update final dict with actual values where border nodes exist
+        for key in temp_dict:
+            border_dict[key] = list(temp_dict[key])
+
+        self.border_nodes = border_dict
+
     def generate_map(self):
 
         total_nodes = 100
@@ -530,7 +562,8 @@ class GraphApp(QWidget):
         self.assign_zone()
 
         self.edges = [Edge(self.nodes[a], self.nodes[b], np.random.randint(1, 20),np.random.randint(5, 30)) for (a, b) in all_edges]
-
+        self.find_border_nodes()
+        print(self.border_nodes)
         self.PerformMst()
         self.update_graph()
 

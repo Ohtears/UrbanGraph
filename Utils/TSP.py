@@ -17,7 +17,7 @@ class TSP:
                 result.append(item)
         return result
 
-    def tsp(self, source, destinations):
+    def tsp(self, source, destinations, border_nodes):
         source_index = source.id
         dest_indices = [d.id for d in destinations]
         # build a lookup so we can ask A* for a given ID later:
@@ -30,7 +30,7 @@ class TSP:
 
         # 1) Seed distances from source → dest[i]
         for i, dest in enumerate(destinations):
-            path, edges = self.astar_agent.a_star_search(source, dest)
+            path, edges = self.astar_agent.performA_star(source, dest, border_nodes)
             if path is not None:
                 cost = sum(e.weight for e in edges)
                 self.distances[source_index][dest.id] = cost
@@ -43,7 +43,7 @@ class TSP:
                     continue
                 u = destinations[i]
                 v = destinations[j]
-                path, edges = self.astar_agent.a_star_search(u, v)
+                path, edges = self.astar_agent.performA_star(u, v, border_nodes)
                 if path is not None:
                     cost = sum(e.weight for e in edges)
                     self.distances[u.id][v.id] = cost
@@ -80,7 +80,7 @@ class TSP:
         prev_node = source
         for nid in best_path:
             curr_node = id2node[nid]
-            nodes, edges = self.astar_agent.a_star_search(prev_node, curr_node)
+            nodes, edges = self.astar_agent.performA_star(prev_node, curr_node, border_nodes)
             if edges is None:
                 raise RuntimeError(f"A* failed on leg {prev_node.id}→{curr_node.id}")
             # append the full list of edges for this leg
