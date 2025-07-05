@@ -161,7 +161,9 @@ The heuristic used in UrbanGraph considers two factors:
     weighted to encourage intra-zone travel when possible.
 
 The final heuristic formula is:
-$$h(n) = 0.7 \cdot \text{distance}(n, \text{goal}) + 0.3 \cdot \text{zone\_difference}(n, \text{goal}) \times 10$$
+```math
+h(n) = 0.7 \cdot \text{distance}(n, \text{goal}) + 0.3 \cdot \text{zone\_difference}(n, \text{goal}) \times 10
+```
 This allows the algorithm to prioritize spatial proximity while still
 accounting for logical travel costs between urban zones.
 
