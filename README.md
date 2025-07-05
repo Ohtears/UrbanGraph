@@ -165,8 +165,7 @@ $$h(n) = 0.7 \cdot \text{distance}(n, \text{goal}) + 0.3 \cdot \text{zone\_diffe
 This allows the algorithm to prioritize spatial proximity while still
 accounting for logical travel costs between urban zones.
 
-### Edge Handling and Traffic Sensitivity {#edge-handling-an
-
+### Edge Handling and Traffic Sensitivity 
 Each edge has a defined capacity. If an edge is congested (i.e., its
 number of current passengers exceeds capacity), a penalty is applied to
 its weight to simulate traffic delays. This discourages the algorithm
@@ -177,7 +176,7 @@ exist. Congestion is handled as follows:
 
 -   Congested edge: weight is increased by a penalty factor.
 
-### Multi-Zone Travel and Border Nodes {#multi-zone-travel-an
+### Multi-Zone Travel and Border Nodes 
 
 When a route spans multiple zones (e.g., from North to West), UrbanGraph
 uses a two-phase strategy involving **border nodes**, which are nodes
@@ -371,7 +370,7 @@ Spanning Tree (MST)** of the graph, computed using Prim's algorithm.
 This allows users to explore the minimal structure that connects all
 stations (nodes) with the least total edge cost.
 
-## Prim's Algorithm Overview {#prim
+## Prim's Algorithm Overview
 
 The MST is generated using a variant of Prim's algorithm:
 
@@ -386,7 +385,7 @@ Each edge in the MST retains metadata such as weight, capacity, and
 color, ensuring consistency with the original graph and enabling
 intuitive visualization.
 
-## MST Construction and Properties {#mst-constructio
+## MST Construction and Properties 
 
 The algorithm operates on an adjacency list representation of the graph.
 Edges are prioritized by weight using a min-heap structure. Additional
@@ -455,7 +454,7 @@ visited nodes, ensuring each node is visited only once.
 
 The final path represents the order in which nodes were discovered.
 
-## Interactive Visualization {#interactiv
+## Interactive Visualization
 
 UrbanGraph renders the BFS traversal in an interactive and visual
 format:
@@ -530,7 +529,7 @@ pairwise distances.
 
 -   **Space Complexity:** $O(n \cdot 2^n)$ for storing the DP table.
 
-## Minimum Spanning Tree (MST) {#minimum-spanning-tre
+## Minimum Spanning Tree (MST)
 
 UrbanGraph computes the MST using Prim's algorithm with a priority
 queue.
