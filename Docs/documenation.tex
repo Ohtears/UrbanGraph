@@ -5,17 +5,19 @@
 \usepackage{hyperref}
 \usepackage{caption}
 \usepackage{float}
-\usepackage{amsfonts}
-\usepackage{fontspec}
+% \usepackage{amsfonts}
+% \usepackage{fontspec}
 \usepackage{subcaption}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
 
 
-\setmainfont{Latin Modern Roman} % or any installed font on your system
+% \setmainfont{Latin Modern Roman} % or any installed font on your system
 
 \geometry{a4paper, margin=1in}
 
 \title{UrbanGraph: A Dynamic Urban Traffic Simulation Using Graph Algorithms}
-\author{Your Name}
+\author{Ashkan Marali\\Alireza Sobhdoost}
 \date{\today}
 
 \begin{document}
@@ -155,7 +157,7 @@ Each node in the graph is assigned to one of four spatial zones based on its $(x
     \label{fig:mst-both}
 \end{figure}
 
-\newpage
+% \newpage
 
 \section{Travel and Route Computation}
 \subsection{A* Pathfinding Algorithm}
@@ -193,7 +195,53 @@ When a route spans multiple zones (e.g., from North to West), UrbanGraph uses a 
     \item Select the combination with the lowest total cost.
 \end{enumerate}
 
-This design reduces unnecessary zone-hopping and makes routing more efficient and realistic in zoned urban networks.
+\begin{algorithm}
+    \caption{A* Search with Zone Handling}
+    \label{alg:a_star_zone}
+    \begin{algorithmic}[1]
+    \Procedure{PerformAStar}{$start\_node$, $goal\_node$, $border\_nodes$}
+        \State $node1\_zone \gets start\_node.zone$
+        \State $node2\_zone \gets goal\_node.zone$
+        
+        \If{$node1\_zone == node2\_zone$}
+            \State \Return \Call{AStarSearch}{$start\_node$, $goal\_node$}
+        \EndIf
+        
+        \State $key \gets \text{concat}(\min(node1\_zone, node2\_zone), \text{"to"}, \max(node1\_zone, node2\_zone))$
+        \State $best\_cost \gets \infty$
+        \State $best\_path \gets \text{None}$
+        \State $best\_edges \gets \text{None}$
+        
+        \If{$border\_nodes.\text{get}(key)$}
+            \State $candidates \gets border\_nodes[key]$
+        \Else
+            \State $trimed\_dict \gets$ \Call{FilterBorderByZone}{$node1\_zone$, $border\_nodes$}
+            \State $candidates \gets$ \text{list of nodes from} $trimed\_dict$ \text{where nodes exist}
+        \EndIf
+        
+        \For{$border\_node$ \textbf{in} $candidates$}
+            \State $(path1, edges1) \gets$ \Call{AStarSearch}{$start\_node$, $border\_node$}
+            \State $(path2, edges2) \gets$ \Call{AStarSearch}{$border\_node$, $goal\_node$}
+            
+            \If{$path1 == \text{None}$ \textbf{or} $path2 == \text{None}$}
+                \State \textbf{continue}
+            \EndIf
+            
+            \State $cost \gets \sum(e.weight$ \textbf{for} $e$ \textbf{in} $edges1 + edges2)$
+            
+            \If{$cost < best\_cost$}
+                \State $best\_cost \gets cost$
+                \State $best\_path \gets path1[:-1] + path2$
+                \State $best\_edges \gets edges1 + edges2$
+            \EndIf
+        \EndFor
+        
+        \State \Return $(best\_path, best\_edges)$
+    \EndProcedure
+    \end{algorithmic}
+    \end{algorithm}
+
+This design reduces unnecessary zone-hopping and makes routing more efficient and realistic in zoned urban networks. You can see our recursive D\&Q algorithm in algorithm\ref{alg:a_star_zone}
 
 \subsubsection*{Output}
 
@@ -492,3 +540,4 @@ BFS is used for level-order exploration of the graph starting from a selected no
 UrbanGraph offers a modular and visually engaging way to explore pathfinding and graph algorithms in an urban context. The simulation demonstrates how computational strategies can be applied to traffic and logistics challenges.
 
 % ----------------------------------------
+\end{document}
