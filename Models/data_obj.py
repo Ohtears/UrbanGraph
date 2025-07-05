@@ -105,15 +105,15 @@ class Queue :
         return len(self.queue)
 
 ZONE_COLORS = {
-    0: 'c',  # cyan
-    1: 'm',  # magenta
-    2: 'y',  # yellow
-    3: 'g',  # green
+    0: 'c',      # cyan
+    1: 'm',      # magenta
+    2: 'y',      # yellow
+    3: 'b',      # blue 
 }
 
 COLORS = {
     "c" : (0, 255, 255, 255),  # cyan
     "m" : (255, 0, 255, 255),  # magenta
     "y" : (255, 255, 0, 255),  # yellow
-    "g" : (0, 255, 0, 255),  # green
+    "g" : (0, 0, 255, 255),  # blue
 }
