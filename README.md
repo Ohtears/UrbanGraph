@@ -176,7 +176,9 @@ exist. Congestion is handled as follows:
 
 -   Congested edge: weight is increased by a penalty factor.
 
-### Multi-Zone Travel and Border Nodes 
+
+
+## A* Search Zone Handling
 
 When a route spans multiple zones (e.g., from North to West), UrbanGraph
 uses a two-phase strategy involving **border nodes**, which are nodes
@@ -189,30 +191,45 @@ located near zone boundaries and flagged during graph preprocessing:
 
 3.  Select the combination with the lowest total cost.
 
-::: algorithm
-::: algorithmic
-$node1\_zone \gets start\_node.zone$ $node2\_zone \gets goal\_node.zone$
 
-$key \gets \text{concat}(\min(node1\_zone, node2\_zone), \text{"to"}, \max(node1\_zone, node2\_zone))$
-$best\_cost \gets \infty$ $best\_path \gets \text{None}$
-$best\_edges \gets \text{None}$
+### Algorithm Steps
 
-$candidates \gets border\_nodes[key]$ $trimed\_dict \gets$
-$candidates \gets$ $trimed\_dict$
+1. **Initialize Node Zones**
+   - Set `node1_zone = start_node.zone`
+   - Set `node2_zone = goal_node.zone`
 
-$(path1, edges1) \gets$ $(path2, edges2) \gets$
+2. **Check for Same Zone**
+   - If `node1_zone == node2_zone`:
+     - Perform standard A* search between start and goal nodes
+     - Return the resulting path
 
-**continue**
+3. **Prepare Zone Transition**
+   - Create zone key: `key = concat(min(zone1,zone2), "to", max(zone1,zone2))`
+   - Initialize:
+     - `best_cost = ∞`
+     - `best_path = None`
+     - `best_edges = None`
 
-$cost \gets \sum(e.weight$ **for** $e$ **in** $edges1 + edges2)$
+4. **Get Border Nodes**
+   - If border nodes exist for `key`:
+     - `candidates = border_nodes[key]`
+   - Else:
+     - Filter border nodes by zone: `trimmed_dict = FilterBorderByZone(node1_zone, border_nodes)`
+     - `candidates = nodes from trimmed_dict`
 
-$best\_cost \gets cost$ $best\_path \gets path1[:-1] + path2$
-$best\_edges \gets edges1 + edges2$
+5. **Evaluate Border Paths**
+   - For each `border_node` in `candidates`:
+     - Compute path from start to border: `(path1, edges1) = A*Search(start, border)`
+     - Compute path from border to goal: `(path2, edges2) = A*Search(border, goal)`
+     - If either path fails: skip to next candidate
+     - Calculate total cost: `cost = sum(e.weight for e in edges1 + edges2)`
+     - If `cost < best_cost`:
+       - Update `best_cost = cost`
+       - Update `best_path = path1[:-1] + path2`
+       - Update `best_edges = edges1 + edges2`
 
-$(best\_path, best\_edges)$
-:::
-:::
-
+6. **Return Result**
+   - Return the optimal path: `(best_path, best_edges)`
 This design reduces unnecessary zone-hopping and makes routing more
 efficient and realistic in zoned urban networks. You can see our
 recursive D&Q algorithm in
