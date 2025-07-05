@@ -56,12 +56,10 @@ patterns over time, simulating a dynamic and reactive transport
 environment.
 
 ![100 node Graph under normal load
-conditions](./Images/sample_img_1_2.png){#fig:traffic-normal
-width="\\textwidth"}
+conditions](./Images/sample_img_1_2.png)
 
 ![20 node Graph under normal load
-conditions](./Images/sample_img_2_1.png){#fig:traffic-congested
-width="\\textwidth"}
+conditions](./Images/sample_img_2_1.png)
 
 # Random Graph Generation
 
@@ -117,11 +115,8 @@ reveals only its directly connected edges. This feature helps users
 inspect local connectivity and understand how each node integrates into
 the larger graph.
 
-![image](./Images/sample_img_1_1.png){width="\\textwidth"}
-[]{#fig:node-click-1 label="fig:node-click-1"}
-
-![image](./Images/sample_img_3_1.png){width="\\textwidth"}
-[]{#fig:node-click-2 label="fig:node-click-2"}
+![image](./Images/sample_img_1_1.png)
+![image](./Images/sample_img_3_1.png)
 
 ## Zone Assignment
 
@@ -142,12 +137,9 @@ intuitive layout.
 -   **West (Zone 3)**: $|x| \geq |y|$ and $x < 0$\
     *Color: Blue (`#1f77b4`)*
 
-![100 node Graph](./Images/sampleMap_1.png){#fig:mst-1
-width="\\textwidth"}
+![100 node Graph](./Images/sampleMap_1.png)
 
-![20 node Graph](./Images/sampleMap_2.png){#fig:mst-2
-width="\\textwidth"}
-
+![20 node Graph](./Images/sampleMap_2.png)
 # Travel and Route Computation
 
 ## A\* Pathfinding Algorithm
@@ -420,12 +412,9 @@ includes:
 
 -   **Labels**: Node IDs are overlaid for identification and analysis.
 
-![MST for a 100 node Graph](./Images/sampleMST_1.png){#fig:mst-1
-width="\\textwidth"}
+![MST for a 100 node Graph](./Images/sampleMST_1.png)
 
-![MST for a 20 node Graph](./Images/sampleMST_2.png){#fig:mst-2
-width="\\textwidth"}
-
+![MST for a 20 node Graph](./Images/sampleMST_2.png)
 This visualization enables users to explore the MST structure
 independently of the full traffic simulation and can serve educational,
 analytical, or debugging purposes.
@@ -483,11 +472,9 @@ format:
 
 -   **Final Node**: Highlighted in red with a black border.
 
-![BFS for a 100 node Graph](./Images/sampleBFS_1.png){#fig:bfs-1
-width="\\textwidth"}
+![BFS for a 100 node Graph](./Images/sampleBFS_1.png)
 
-![BFS for a 100 node Graph](./Images/sampleBFS_2.png){#fig:bfs-2
-width="\\textwidth"}
+![BFS for a 100 node Graph](./Images/sampleBFS_2.png)
 
 This layout allows users to visually trace the breadth-first exploration
 in both spatial and logical order.
