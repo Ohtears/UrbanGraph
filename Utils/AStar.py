@@ -70,12 +70,17 @@ class AStar:
                     if ((edge.source == current_node and edge.target == neighbor) or
                         (edge.target == current_node and edge.source == neighbor))
                 ]
-                valid_edges = [e for e in connecting_edges if not self.is_edge_blocked(e)]
+                # Option 1 : dont try the blocked edges !
+                # valid_edges = [e for e in connecting_edges if not self.is_edge_blocked(e)]
+
+                # Option 2 : dublle the blocked edges' weight
+                valid_edges = connecting_edges
                 if not valid_edges:
                     continue
 
                 edge = valid_edges[0]  # You can improve edge selection if needed
-                tentative_g_score = g_score[current_node] + edge.weight
+                trafick_cost = edge.weight if self.is_edge_blocked(edge) else 0
+                tentative_g_score = g_score[current_node] + edge.weight + trafick_cost
 
                 if neighbor not in g_score or tentative_g_score < g_score[neighbor]:
                     came_from[neighbor] = current_node
@@ -88,3 +93,49 @@ class AStar:
                         open_set_entries.add(neighbor)
 
         return None, None  # No path found
+
+    @staticmethod
+    def filter_border_by_zone(border_dict, zone):
+        zone_str = str(zone)
+        result = {}
+
+        for key, value in border_dict.items():
+            if zone_str in key.split("to"):
+                result[key] = value
+
+        return result
+
+    def performA_star(self, start_node, goal_node, border_nodes):
+        node1_zone = start_node.zone
+        node2_zone = goal_node.zone
+
+        if node1_zone == node2_zone:
+            return self.a_star_search(start_node, goal_node)
+
+        key = f"{min(node1_zone, node2_zone)}to{max(node1_zone, node2_zone)}"
+        best_cost = np.inf
+        best_path, best_edges = None, None
+
+        if border_nodes.get(key):
+            candidates = border_nodes[key]
+        else:
+            # Fallback to indirect borders
+            trimed_dict = self.filter_border_by_zone(node1_zone, border_nodes)
+            candidates = [node for nodes in trimed_dict.values() if nodes for node in nodes]
+
+        for border_node in candidates:
+            path1, edges1 = self.a_star_search(start_node, border_node)
+            path2, edges2 = self.a_star_search(border_node, goal_node)
+
+            if not path1 or not path2:
+                continue
+
+            cost = sum(e.weight for e in edges1 + edges2)
+
+            if cost < best_cost:
+                best_cost = cost
+                best_path = path1[:-1] + path2
+                best_edges = edges1 + edges2
+                # print(border_node)
+
+        return best_path, best_edges

@@ -15,43 +15,66 @@ class Node:
         return str(self.id)
 
 class Edge:
-    def __init__(self, source, target, weight, capacity, color=(0, 0, 0, 255), passengers=None):
-        self.source = source  # Node object
-        self.target = target  # Node object
+    def __init__(self, node1, node2, weight, capacity, color=(0, 0, 0, 255), passengers=None):
+        # Store nodes as a frozenset for undirected logic
+        self._nodes = frozenset({node1, node2})
+
+        # Keep source/target as they were, but normalize based on ID to make it consistent
+        self._source, self._target = sorted([node1, node2], key=lambda n: n.id)
+
         self.color = color
         self.weight = weight
         self.capacity = capacity
-        self.passengers = passengers if passengers is not None else set()
-
-
-    def __gt__(self, oprand) :
-        return self.weight > oprand.weight
-    def __lt__(self, oprand) :
-        return self.weight < oprand.weight
-    def __eq__(self, oprand) :
-        return self.weight == oprand.weight
-
-    def __repr__(self):
-        return f"{self.source.id} -> {self.target.id}"
+        self.passengers = passengers if passengers is not None else Queue()
 
     @property
-    def SetTraficColor(self):
+    def source(self):
+        return self._source
+
+    @property
+    def target(self):
+        return self._target
+
+    def __repr__(self):
+        return f"{self.source.id} <-> {self.target.id}"
+
+    def __hash__(self):
+        # Order-independent hash
+        return hash(self._nodes)
+
+    def __eq__(self, other):
+        return isinstance(other, Edge) and self._nodes == other._nodes
+
+    def __gt__(self, other):
+        return self.weight > other.weight
+
+    def __lt__(self, other):
+        return self.weight < other.weight
+
+    @property
+    def nodes(self):
+        return tuple(self._nodes)
+
+    def set_traffic_color(self):
         occupancy_ratio = len(self.passengers) / self.capacity
 
-        if occupancy_ratio < 0.3:
-            self.color = (0, 200, 0, 255)  # Dark green
-        elif occupancy_ratio < 0.6:
-            self.color = (255, 255, 0, 255)  # Yellow
-        elif occupancy_ratio < 0.8:
-            self.color = (255, 0, 0, 255)  # Red
-        elif occupancy_ratio < 1:
-            self.color = (128, 0, 0, 255)  # Dark red
+        if len(self.passengers) == 0:
+            self.color = (0, 200, 0, 255) # Green for no passengers
+        elif len(self.passengers) == 1:
+            self.color = (255, 255, 0, 255) # Yellow for 1 passenger
+        elif len(self.passengers) == 2:
+            self.color = (255, 0, 0, 255) # Red for 2 passengers
+        elif len(self.passengers) == 3:
+            self.color = (128, 0, 0, 255) # Dark red for 3 passengers
         else:
-            self.color = (0, 0, 0, 255)  # Black
+            self.color = (0, 0, 0, 255) # Black for more than 3 passengers or full capacity
+
 
 class Graph:
     def __init__(self,nodes, edges):
         self.graph = {}
+        self.nodes = nodes
+        self.edges = edges
         for node in nodes:
             self.graph[node.id] = []
 
@@ -61,7 +84,25 @@ class Graph:
             self.graph[edge.target.id].append(edge)
 
     def get_edges(self, node):
-        return self.graph.get(node.id, [])
+        try :
+            return self.graph.get(node.id, [])
+        except :
+            return self.graph.get(node, [])
+
+
+class Queue :
+    def __init__(self):
+        self.queue = []
+    def push(self, value) :
+        self.queue.append(value)
+
+    def pop(self) :
+        value = self.queue[0]
+        self.queue = self.queue[1:]
+        return value
+
+    def __len__(self):
+        return len(self.queue)
 
 ZONE_COLORS = {
     0: 'c',  # cyan
