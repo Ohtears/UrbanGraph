@@ -17,7 +17,7 @@ class TSP:
                 result.append(item)
         return result
 
-    def tsp(self, source, destinations, border_nodes):
+    def tsp(self, source, destinations, border_nodes, log=False):
         source_index = source.id
         dest_indices = [d.id for d in destinations]
         # build a lookup so we can ask A* for a given ID later:
@@ -87,6 +87,9 @@ class TSP:
             chosen_edges.extend(edges)
             chosen_nodes.extend(nodes)
             prev_node = curr_node
+
+        if log :
+            print(dp)
 
         return min_cost, best_path, self.unique_preserve_order(chosen_nodes), self.unique_preserve_order(chosen_edges)
 

@@ -105,7 +105,7 @@ class AStar:
 
         return result
 
-    def performA_star(self, start_node, goal_node, border_nodes):
+    def performA_star(self, start_node, goal_node, border_nodes, log=False):
         node1_zone = start_node.zone
         node2_zone = goal_node.zone
 
@@ -133,6 +133,11 @@ class AStar:
             cost = sum(e.weight for e in edges1 + edges2)
 
             if cost < best_cost:
+                if log :
+                    print(f"New best cost is {cost}")
+                    print(f"Prev best path : {best_path}")
+                    print(f"Prev best path : {best_edges}")
+
                 best_cost = cost
                 best_path = path1[:-1] + path2
                 best_edges = edges1 + edges2

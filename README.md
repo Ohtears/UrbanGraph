@@ -108,7 +108,7 @@ To standardize rendering, the final layout is centered around the origin
 and scaled, with coordinates rounded to simplify zone computation and
 rendering precision.
 
-### Node Interaction View {#nod
+### Node Interaction View
 
 UrbanGraph also supports an interactive view where clicking on a node
 reveals only its directly connected edges. This feature helps users
@@ -272,7 +272,7 @@ optimal path while incorporating real route costs obtained from the A\*
 algorithm. This hybrid method is both computationally efficient and
 spatially realistic in an urban navigation context.
 
-### Graph-Aware Cost Matrix {#graph-awar
+### Graph-Aware Cost Matrix 
 
 A key part of this implementation is the construction of a distance
 matrix between the source node and all destination nodes:
@@ -286,7 +286,7 @@ matrix between the source node and all destination nodes:
 -   The resulting matrix reflects real traversal costs that consider
     traffic, edge weights, and zone transitions.
 
-### Dynamic Programming Formulation {#dynami
+### Dynamic Programming Formulation
 
 The algorithm constructs a DP table where:
 
@@ -507,7 +507,7 @@ The BFS module serves several practical and pedagogical roles:
 
 -   Validating graph connectivity in real time.
 
-## Integration with Simulation {#integratio
+## Integration with Simulation 
 
 Though BFS is not used for routing in UrbanGraph, it provides insight
 into the graph's topology and complements other algorithmic features

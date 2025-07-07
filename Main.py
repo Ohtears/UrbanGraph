@@ -341,12 +341,12 @@ class GraphApp(QWidget):
             tsp_solver = TSP(astar)
 
             if len(dsts) == 1:
-                nodes, path = astar.performA_star(src, dsts[0], self.border_nodes)
+                nodes, path = astar.performA_star(src, dsts[0], self.border_nodes, True)
                 print(nodes,path)
                 min_cost = path[-1].weight if path else 0
                 best_order = [dsts[0].id]
             else:
-                min_cost, best_order, nodes, path = tsp_solver.tsp(src, dsts, self.border_nodes)
+                min_cost, best_order, nodes, path = tsp_solver.tsp(src, dsts, self.border_nodes, True)
 
             # When calculation is done, add to active users
             u.set_route(nodes, path)
